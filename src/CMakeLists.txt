@@ -15,9 +15,9 @@ find_package(cereal REQUIRED)
 
 # Define your executables
 add_executable(canasta_server
-        app/server_main.cpp)
+        app/server/server_main.cpp)
 add_executable(canasta_client
-        app/client_main.cpp
+        app/client/client_main.cpp
         include/game_state.hpp)
 
 # Link libraries provided by Conan
