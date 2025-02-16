@@ -14,13 +14,13 @@ find_package(asio REQUIRED)
 find_package(cereal REQUIRED)
 
 # Define your executables
-add_executable(launcher
-        app/main.cpp)
-add_executable(game_player
-        app/game_player.cpp
+add_executable(canasta_server
+        app/server_main.cpp)
+add_executable(canasta_client
+        app/client_main.cpp
         include/game_state.hpp)
 
 # Link libraries provided by Conan
 #target_link_libraries(launcher sqlitecpp sqlite3)
-target_link_libraries(launcher SQLiteCpp spdlog::spdlog asio::asio cereal::cereal)
-target_link_libraries(game_player SQLiteCpp spdlog::spdlog asio::asio cereal::cereal)
+target_link_libraries(canasta_server SQLiteCpp spdlog::spdlog asio::asio cereal::cereal)
+target_link_libraries(canasta_client SQLiteCpp spdlog::spdlog asio::asio cereal::cereal)
