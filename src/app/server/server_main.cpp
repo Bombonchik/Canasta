@@ -40,13 +40,13 @@ void launchTerminal(int playerIndex) {
     std::string command;
 #ifdef _WIN32
     // Windows: Use 'start' to open a new command prompt
-    command = "start cmd /k \"game_player.exe " + std::to_string(playerIndex) + "\"";
+    command = "start cmd /k \"canasta_client.exe " + std::to_string(playerIndex) + "\"";
 #elif __APPLE__
     // macOS: Use 'osascript' to run a command in a new Terminal window
-    command = "osascript -e 'tell application \"Terminal\" to do script \"cd '$PWD' && ./game_player " + std::to_string(playerIndex) + "\"'";
+    command = "osascript -e 'tell application \"Terminal\" to do script \"cd '$PWD' && ./canasta_client " + std::to_string(playerIndex) + "\"'";
 #else
     // Linux: Use 'gnome-terminal' or 'xterm' to open a new terminal window
-    command = "gnome-terminal -- bash -c './game_player " + std::to_string(playerIndex) + "; exec bash'";
+    command = "gnome-terminal -- bash -c './canasta_client " + std::to_string(playerIndex) + "; exec bash'";
 #endif
     spdlog::info("Launching terminal for Player {}", playerIndex + 1);
     system(command.c_str());
