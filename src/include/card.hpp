@@ -87,7 +87,7 @@ public:
     // Serialization with Cereal
     template <class Archive>
     void serialize(Archive& archive) {
-        archive(rank, color, type, points);
+        archive(CEREAL_NVP(rank), CEREAL_NVP(color), CEREAL_NVP(type), CEREAL_NVP(points));
     }
 
 private:
