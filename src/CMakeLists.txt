@@ -4,23 +4,65 @@ project(MyCanastaGame)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Add include directories for header files
-include_directories(include)
-
-# Use a relative path to the Conan toolchain file from the build directory
+# Find required packages
 find_package(SQLiteCpp REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(asio REQUIRED)
 find_package(cereal REQUIRED)
 
-# Define your executables
-add_executable(canasta_server
-        app/server/server_main.cpp)
-add_executable(canasta_client
-        app/client/client_main.cpp
-        include/game_state.hpp)
+# --- Core Game Logic Library ---
+add_library(canasta_core STATIC
+    app/card.cpp
+    app/meld.cpp
+    # Add future .cpp files here:
+    app/hand.cpp
+    # app/board.cpp
+    app/player.cpp
+    # app/round.cpp
+    app/team.cpp
+)
 
-# Link libraries provided by Conan
-#target_link_libraries(launcher sqlitecpp sqlite3)
-target_link_libraries(canasta_server SQLiteCpp spdlog::spdlog asio::asio cereal::cereal)
-target_link_libraries(canasta_client SQLiteCpp spdlog::spdlog asio::asio cereal::cereal)
+# Specify include directory for the core library
+target_include_directories(canasta_core PUBLIC include)
+
+# Link core library against dependencies needed for its headers/compilation
+target_link_libraries(canasta_core PUBLIC
+    cereal::cereal
+)
+
+
+# --- Server Executable ---
+add_executable(canasta_server
+    app/server/server_main.cpp
+    app/server/server_deck.cpp
+    # Removed app/client/client_deck.cpp from here
+)
+
+# Specify include directory for the server
+target_include_directories(canasta_server PRIVATE include)
+
+# Link server against core library and dependencies
+target_link_libraries(canasta_server PRIVATE
+    canasta_core
+    SQLiteCpp       # Only server needs DB?
+    spdlog::spdlog
+    asio::asio
+    # cereal::cereal is inherited via canasta_core PUBLIC link
+)
+
+# --- Client Executable ---
+add_executable(canasta_client
+    app/client/client_main.cpp
+    app/client/client_deck.cpp
+)
+
+# Specify include directory for the client
+target_include_directories(canasta_client PRIVATE include)
+
+# Link client against core library and dependencies
+target_link_libraries(canasta_client PRIVATE
+    canasta_core
+    spdlog::spdlog
+    asio::asio
+    # cereal::cereal is inherited via canasta_core PUBLIC link
+)
