@@ -1,7 +1,6 @@
 
 #include "meld.hpp"
 
-
 // Implementation of RedThreeMeld::initialize
 Status RedThreeMeld::initialize(const std::vector<Card>& cards) {
     if (auto status = checkInitialization(cards); !status.has_value()) {
@@ -9,7 +8,7 @@ Status RedThreeMeld::initialize(const std::vector<Card>& cards) {
     }
     redThreeCount = cards.size();
     isActive = true;
-
+    updatePoints(); // Update points after initialization
     return {};
 }
 
@@ -38,6 +37,7 @@ Status RedThreeMeld::addCard(const Card& card) {
         return status; // Forward the error message if check fails
     }
     redThreeCount++;
+    updatePoints(); // Update points after adding a card
     return {};
 }
 
@@ -55,17 +55,22 @@ Status RedThreeMeld::checkCardAddition(const Card& card) const {
     return {};
 }
 
-// Implementation of RedThreeMeld::getTotalPoints
-int RedThreeMeld::updateTotalPoints() {
-    points = 0;
-    const int redThreePoints = Card(Rank::Three, CardColor::RED).getPoints();
-    points = redThreeCount * redThreePoints;
-    if (redThreeCount == 4) {
-        points *= 2; // double points for a complete Red Three Meld
-    }
-
+// Implementation of RedThreeMeld::getPoints
+int RedThreeMeld::getPoints() const {
+    // Simply return the cached value
     return points;
 }
+
+// Implementation of RedThreeMeld::updatePoints
+void RedThreeMeld::updatePoints() {
+    const int redThreePointsValue = Card(Rank::Three, CardColor::RED).getPoints();
+    int calculatedPoints = redThreeCount * redThreePointsValue;
+    if (redThreeCount == 4) {
+        calculatedPoints *= 2; // double points for a complete Red Three Meld
+    }
+    points = calculatedPoints; // Update the member variable
+}
+
 
 // Implementation of BlackThreeMeld::initialize
 Status BlackThreeMeld::initialize(const std::vector<Card>& cards) {
@@ -74,6 +79,7 @@ Status BlackThreeMeld::initialize(const std::vector<Card>& cards) {
     }
     blackThreeCount = cards.size();
     isActive = true;
+    updatePoints(); // Update points after initialization
     return {};
 }
 
@@ -101,9 +107,14 @@ Status BlackThreeMeld::addCard(const Card& card) {
     return std::unexpected("It is not possible to add card to Black Three Meld");
 }
 
-// Implementation of BlackThreeMeld::getTotalPoints
-int BlackThreeMeld::updateTotalPoints() {
-    points = blackThreeCount * Card(Rank::Three, CardColor::BLACK).getPoints();
+// Implementation of BlackThreeMeld::getPoints
+int BlackThreeMeld::getPoints() const {
+    // Simply return the cached value
     return points;
+}
+
+// Implementation of BlackThreeMeld::updatePoints
+void BlackThreeMeld::updatePoints() {
+    points = blackThreeCount * Card(Rank::Three, CardColor::BLACK).getPoints();
 }
 

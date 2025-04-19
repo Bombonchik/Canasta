@@ -14,14 +14,15 @@
 using Status = std::expected<void, std::string>;
 
 constexpr unsigned CANASTA_TYPE_COUNT = 2;
-constexpr std::array<const char*, CARD_COLOR_COUNT> canastaTypes = {
+constexpr std::array<const char *, CARD_COLOR_COUNT> canastaTypes = {
     "Natural", "Mixed", // "Wild" can be added later
 };
 
-enum class CanastaType {
-    Natural,  // Ranks Four → Ace
+enum class CanastaType
+{
+    Natural, // Ranks Four → Ace
     Mixed,   // Ranks Four → Ace with wild cards
-    //Wild,  // Only wild cards Not supported in this implementation, but can be added
+    // Wild,  // Only wild cards Not supported in this implementation, but can be added
 };
 
 // Overload std::to_string for CardType
@@ -33,21 +34,23 @@ inline std::string to_string(CanastaType type) {
 class BaseMeld {
 protected:
     bool isActive;
-    int points;
+    int points; // Cached points value
 public:
     BaseMeld() : isActive(false), points(0) {}
     virtual ~BaseMeld() = default;
 
     virtual Status initialize(const std::vector<Card>& cards) = 0;
     virtual Status addCard(const Card& card) = 0;
-    virtual int updateTotalPoints() = 0;
+    virtual int getPoints() const = 0; // Get the cached points
+    virtual void updatePoints() = 0;   // Update the cached points
     bool isInitialized() const { return isActive; }
 
     // Correctly templated serialization method
     template <class Archive>
-    void serialize(Archive& archive) {
-        updateTotalPoints();
-        archive(isActive, points);
+    void serialize(Archive& archive)
+    {
+        // Removed updatePoints() call - assume points are updated when state changes
+        archive(CEREAL_NVP(isActive), CEREAL_NVP(points));
     }
 protected:
     virtual Status checkInitialization(const std::vector<Card>& cards) const = 0;
@@ -66,14 +69,15 @@ public:
 
     Status initialize(const std::vector<Card>& cards) override;
     Status addCard(const Card& card) override;
-    int updateTotalPoints() override;
+    int getPoints() const override;
+    void updatePoints() override;
     bool isCanastaMeld() const { return isCanasta; }
     std::expected<CanastaType, std::string> getCanastaType() const;
     static bool isCorrectNaturalList(const std::vector<Card>& cards);
 
     template <class Archive>
     void serialize(Archive& archive) {
-        archive(cereal::base_class<BaseMeld>(this), isCanasta, naturalCards, wildCards);
+        archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(isCanasta), CEREAL_NVP(naturalCards), CEREAL_NVP(wildCards));
     }
 protected:
     Status checkInitialization(const std::vector<Card>& cards) const override;
@@ -92,11 +96,12 @@ public:
 
     Status initialize(const std::vector<Card>& cards) override;
     Status addCard(const Card& card) override;
-    int updateTotalPoints() override;
+    int getPoints() const override;
+    void updatePoints() override;
 
     template <class Archive>
     void serialize(Archive& archive) {
-        archive(cereal::base_class<BaseMeld>(this), redThreeCount);
+        archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(redThreeCount));
     }
 protected:
     Status checkInitialization(const std::vector<Card>& cards) const override;
@@ -114,11 +119,12 @@ public:
 
     Status initialize(const std::vector<Card>& cards) override;
     Status addCard(const Card& card) override;
-    int updateTotalPoints() override;
+    int getPoints() const override;
+    void updatePoints() override;
 
     template <class Archive>
     void serialize(Archive& archive) {
-        archive(cereal::base_class<BaseMeld>(this), blackThreeCount);
+        archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(blackThreeCount));
     }
 protected:
     Status checkInitialization(const std::vector<Card>& cards) const override;
@@ -146,6 +152,7 @@ Status Meld<R>::initialize(const std::vector<Card>& cards) {
     }
     isActive = true;
     updateCanastaStatus();
+    updatePoints(); // Update points after initialization
     return {};
 }
 
@@ -187,6 +194,7 @@ Status Meld<R>::addCard(const Card& card) {
         naturalCards.push_back(card);
     }
     updateCanastaStatus();
+    updatePoints(); // Update points after adding a card
     return {};
 }
 
@@ -231,10 +239,17 @@ std::expected<CanastaType, std::string> Meld<R>::getCanastaType() const {
     return CanastaType::Mixed;
 }
 
-// Implementation of Meld<R>::getTotalPoints
+// Implementation of Meld<R>::getPoints
 template <Rank R>
-int Meld<R>::updateTotalPoints() {
-    points = 0;
+int Meld<R>::getPoints() const
+{
+    // Simply return the cached value
+    return points;
+}
+
+template <Rank R>
+void Meld<R>::updatePoints() {
+    int calculatedPoints = 0;
     for (const auto& card : naturalCards) {
         points += card.getPoints();
     }
@@ -242,13 +257,14 @@ int Meld<R>::updateTotalPoints() {
         points += card.getPoints();
     }
     if (isCanasta) {
-        if (const auto canastaType = getCanastaType(); canastaType == CanastaType::Natural) {
-            points += 500; // 500 points for a natural canasta
-        } else if (canastaType == CanastaType::Mixed) {
-            points += 300; // 300 points for a mixed canasta
+        if (const auto canastaType = getCanastaType(); canastaType.has_value()) {
+            if (*canastaType == CanastaType::Natural)
+                points += 500; // 500 points for a natural canasta
+            else if (*canastaType == CanastaType::Mixed)
+                points += 300; // 300 points for a mixed canasta
         }
     }
-    return points;
+    points = calculatedPoints;
 }
 
 // Implementation of Meld<R>::isCorrectNaturalList
