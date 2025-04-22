@@ -16,7 +16,6 @@ add_library(canasta_core STATIC
     app/meld.cpp
     # Add future .cpp files here:
     app/hand.cpp
-    # app/board.cpp
     app/player.cpp
     # app/round.cpp
     app/team.cpp
