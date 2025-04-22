@@ -40,6 +40,17 @@ size_t Hand::cardCount() const {
     return cards.size();
 }
 
+// Calculate the total point value of cards remaining in the hand (penalty).
+int Hand::calculatePenalty() const {
+    int penalty = 0;
+    for (const auto& card : cards) {
+        penalty += card.getPoints();
+    }
+    // The result is typically treated as negative in final scoring,
+    // but the function itself returns the positive sum.
+    return penalty;
+}
+
 // Clear the hand.
 void Hand::clear() {
     cards.clear();
