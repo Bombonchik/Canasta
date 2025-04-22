@@ -30,6 +30,10 @@ inline std::string to_string(CanastaType type) {
     return canastaTypes[static_cast<int>(type)];
 }
 
+// --- Scoring Constants ---
+constexpr int NATURAL_CANASTA_BONUS = 500;
+constexpr int MIXED_CANASTA_BONUS = 300;
+
 // Abstract Base Class for All Melds
 class BaseMeld {
 protected:
@@ -44,6 +48,9 @@ public:
     virtual int getPoints() const = 0; // Get the cached points
     virtual void updatePoints() = 0;   // Update the cached points
     bool isInitialized() const { return isActive; }
+
+    virtual bool isCanastaMeld() const { return false; } // Default: Not a canasta
+    virtual std::optional<CanastaType> getCanastaType() const { return std::nullopt; } // Default: No canasta type
 
     // Correctly templated serialization method
     template <class Archive>
@@ -71,8 +78,8 @@ public:
     Status addCard(const Card& card) override;
     int getPoints() const override;
     void updatePoints() override;
-    bool isCanastaMeld() const { return isCanasta; }
-    std::expected<CanastaType, std::string> getCanastaType() const;
+    bool isCanastaMeld() const override { return isCanasta; }
+    std::optional<CanastaType> getCanastaType() const override;
     static bool isCorrectNaturalList(const std::vector<Card>& cards);
 
     template <class Archive>
@@ -229,9 +236,9 @@ void Meld<R>::updateCanastaStatus() {
 
 // Implementation of Meld<R>::getCanastaType
 template <Rank R>
-std::expected<CanastaType, std::string> Meld<R>::getCanastaType() const {
+std::optional<CanastaType> Meld<R>::getCanastaType() const {
     if (!isCanasta) {
-        return std::unexpected("Meld is not a canasta");
+        return std::nullopt;
     }
     if (wildCards.empty()) {
         return CanastaType::Natural;
@@ -259,9 +266,9 @@ void Meld<R>::updatePoints() {
     if (isCanasta) {
         if (const auto canastaType = getCanastaType(); canastaType.has_value()) {
             if (*canastaType == CanastaType::Natural)
-                points += 500; // 500 points for a natural canasta
+                points += NATURAL_CANASTA_BONUS; // 500 points for a natural canasta
             else if (*canastaType == CanastaType::Mixed)
-                points += 300; // 300 points for a mixed canasta
+                points += MIXED_CANASTA_BONUS; // 300 points for a mixed canasta
         }
     }
     points = calculatedPoints;

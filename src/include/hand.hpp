@@ -33,6 +33,9 @@ public:
     // Clear the hand
     void clear();
 
+    // Calculate the total point value of cards remaining in the hand (penalty)
+    int calculatePenalty() const;
+
     // Cereal serialization function
     template <class Archive>
     void serialize(Archive& ar) {
