@@ -21,5 +21,10 @@ Hand& Player::getHand() {
     return hand;
 }
 
+// Reset the player's hand (e.g., at the start of a new round)
+void Player::resetHand() {
+    hand.reset(); // Reset the hand to its initial state
+}
+
 // Note: The Cereal serialization function template is defined inline
 // in the header file (player.hpp) and does not need a separate implementation here.

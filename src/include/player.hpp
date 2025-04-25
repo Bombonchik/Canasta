@@ -23,6 +23,9 @@ public:
     // Needed for dealing cards, player actions etc.
     Hand& getHand();
 
+    // Reset the player's hand (e.g., at the start of a new round)
+    void resetHand();
+
     // Cereal serialization function
     template <class Archive>
     void serialize(Archive& ar) {
