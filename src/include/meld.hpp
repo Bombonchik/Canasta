@@ -9,6 +9,7 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/access.hpp>
+#include <cassert>
 
 
 using Status = std::expected<void, std::string>;
@@ -43,8 +44,10 @@ public:
     BaseMeld() : isActive(false), points(0) {}
     virtual ~BaseMeld() = default;
 
-    virtual Status initialize(const std::vector<Card>& cards) = 0;
-    virtual Status addCard(const Card& card) = 0;
+    virtual Status checkInitialization(const std::vector<Card>& cards) const = 0;
+    virtual void initialize(const std::vector<Card>& cards) = 0;
+    virtual Status checkCardsAddition(const std::vector<Card>& cards) const = 0;
+    virtual void addCards(const std::vector<Card>& cards) = 0;
     virtual int getPoints() const = 0; // Get the cached points
     virtual void updatePoints() = 0;   // Update the cached points
     bool isInitialized() const { return isActive; }
@@ -59,8 +62,6 @@ public:
         // Removed updatePoints() call - assume points are updated when state changes
         archive(CEREAL_NVP(isActive), CEREAL_NVP(points));
     }
-protected:
-    virtual Status checkInitialization(const std::vector<Card>& cards) const = 0;
 };
 
 // Templated class for normal melds (Ranks Four → Ace)
@@ -74,8 +75,10 @@ private:
 public:
     Meld() : isCanasta(false) {}
 
-    Status initialize(const std::vector<Card>& cards) override;
-    Status addCard(const Card& card) override;
+    Status checkInitialization(const std::vector<Card>& cards) const override;
+    void initialize(const std::vector<Card>& cards) override;
+    Status checkCardsAddition(const std::vector<Card>& cards) const override;
+    void addCards(const std::vector<Card>& cards) override;
     int getPoints() const override;
     void updatePoints() override;
     bool isCanastaMeld() const override { return isCanasta; }
@@ -86,11 +89,10 @@ public:
     void serialize(Archive& archive) {
         archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(isCanasta), CEREAL_NVP(naturalCards), CEREAL_NVP(wildCards));
     }
-protected:
-    Status checkInitialization(const std::vector<Card>& cards) const override;
 private:
-    Status checkCardAddition(const Card& card) const;
     void updateCanastaStatus();
+    Status validateCards(const std::vector<Card>& cards,
+        std::size_t naturalCardCount = 0, std::size_t wildCardCount = 0) const;
 };
 
 // Red Three Meld (Special case)
@@ -101,8 +103,10 @@ private:
 public:
     RedThreeMeld() : redThreeCount(0) {}
 
-    Status initialize(const std::vector<Card>& cards) override;
-    Status addCard(const Card& card) override;
+    Status checkInitialization(const std::vector<Card>& cards) const override;
+    void initialize(const std::vector<Card>& cards) override;
+    Status checkCardsAddition(const std::vector<Card>& cards) const override;
+    void addCards(const std::vector<Card>& cards) override;
     int getPoints() const override;
     void updatePoints() override;
 
@@ -110,10 +114,8 @@ public:
     void serialize(Archive& archive) {
         archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(redThreeCount));
     }
-protected:
-    Status checkInitialization(const std::vector<Card>& cards) const override;
 private:
-    Status checkCardAddition(const Card& card) const;
+    Status validateCards(const std::vector<Card>& cards, std::size_t redThreeCount = 0) const;
 };
 
 // Black Three Meld (Special case)
@@ -123,9 +125,11 @@ private:
 
 public:
     BlackThreeMeld() : blackThreeCount(0) {}
-
-    Status initialize(const std::vector<Card>& cards) override;
-    Status addCard(const Card& card) override;
+    
+    Status checkInitialization(const std::vector<Card>& cards) const override;
+    void initialize(const std::vector<Card>& cards) override;
+    Status checkCardsAddition(const std::vector<Card>& cards) const override;
+    void addCards(const std::vector<Card>& cards) override;
     int getPoints() const override;
     void updatePoints() override;
 
@@ -133,8 +137,6 @@ public:
     void serialize(Archive& archive) {
         archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(blackThreeCount));
     }
-protected:
-    Status checkInitialization(const std::vector<Card>& cards) const override;
 };
 
 
@@ -144,12 +146,12 @@ CEREAL_REGISTER_TYPE(BlackThreeMeld)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, RedThreeMeld)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, BlackThreeMeld)
 
+
 // Implementation of Meld<R>::initialize
 template <Rank R>
-Status Meld<R>::initialize(const std::vector<Card>& cards) {
-    if (auto status = checkInitialization(cards); !status.has_value()) {
-        return status; // Forward the error message if check fails
-    }
+void Meld<R>::initialize(const std::vector<Card>& cards) {
+    auto status = checkInitialization(cards)
+    assert(status.has_value() && "Meld initialization failed");
     for (const auto& card : cards) {
         if (card.getType() == CardType::Wild) {
             wildCards.push_back(card);
@@ -163,6 +165,27 @@ Status Meld<R>::initialize(const std::vector<Card>& cards) {
     return {};
 }
 
+// Implementation of Meld<R>::validateCards
+template <Rank R>
+Status Meld<R>::validateCards(const std::vector<Card>& cards,
+    std::size_t naturalCardCount, std::size_t wildCardCount) const {
+    std::size_t naturalCount = naturalCardCount;
+    std::size_t wildCount    = wildCardCount;    
+    for (const auto& card : cards) {
+        if (card.getType() == CardType::Wild) {
+            wildCount++;
+        } else if (card.getRank() == R) {
+            naturalCount++;
+        } else {
+            return std::unexpected("Invalid card " + card.toString() + " for this meld");
+        }
+    }
+    if (wildCount > naturalCount) {
+        return std::unexpected("Too many wild cards for this meld");
+    }
+    return {};
+}
+
 // Implementation of Meld<R>::checkInitialization
 template <Rank R>
 Status Meld<R>::checkInitialization(const std::vector<Card>& cards) const {
@@ -172,34 +195,18 @@ Status Meld<R>::checkInitialization(const std::vector<Card>& cards) const {
     if (cards.size() < 3) {
         return std::unexpected("Meld must contain at least 3 cards");
     }
-    int naturalCardCount = 0;
-    int wildCardCount = 0;
-    for (const auto& card : cards) {
-        if (card.getType() == CardType::Wild) {
-            wildCardCount++;
-        } else if (card.getRank() == R) {
-            naturalCardCount++;
-        } else {
-            return std::unexpected("Invalid card " + card.toString() + " for this meld");
-        }
-    }
-    if (wildCardCount > naturalCardCount) {
-        return std::unexpected("Too many wild cards for this meld");
-    }
-    return {};
+    return validateCards(cards);
 }
 
 // Implementation of Meld<R>::addCard
 template <Rank R>
-Status Meld<R>::addCard(const Card& card) {
-    if (auto status = checkCardAddition(card); !status.has_value()) {
-        return status; // Forward the error message if check fails
-    }
-    if (card.getType() == CardType::Wild) {
+void Meld<R>::addCards(const std::vector<Card>& cards) {
+    auto status = checkCardsAddition(cards);
+    assert(status.has_value() && "Meld addition failed");
+    if (card.getType() == CardType::Wild)
         wildCards.push_back(card);
-    } else {
+    else
         naturalCards.push_back(card);
-    }
     updateCanastaStatus();
     updatePoints(); // Update points after adding a card
     return {};
@@ -207,20 +214,14 @@ Status Meld<R>::addCard(const Card& card) {
 
 // Implementation of Meld<R>::checkCardAddition
 template <Rank R>
-Status Meld<R>::checkCardAddition(const Card& card) const {
+Status Meld<R>::checkCardsAddition(const std::vector<Card>& cards) const {
     if (!isActive) {
         return std::unexpected("Meld is not initialized");
     }
-    if (card.getType() == CardType::Wild) {
-        if (wildCards.size() + 1 > naturalCards.size()) {
-            return std::unexpected("Too many wild cards for this meld");
-        }
-        return {};
+    if (cards.empty()) {
+        return std::unexpected("You must add at least 1 card");
     }
-    if (card.getRank() != R) {
-        return std::unexpected("Invalid card for this meld");
-    }
-    return {};
+    validateCards(cards, naturalCards.size(), wildCards.size());
 }
 
 // Implementation of Meld<R>::updateCanastaStatus
