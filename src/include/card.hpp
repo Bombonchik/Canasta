@@ -97,6 +97,4 @@ private:
     static int calculatePoints(Rank rank, CardType type);
 };
 
-
-
 #endif //CARD_HPP
