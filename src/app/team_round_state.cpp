@@ -5,10 +5,20 @@
 
 // Define constants for meld indices
 namespace {
-    const size_t RED_THREE_MELD_INDEX = 0;
-    const size_t BLACK_THREE_MELD_INDEX = 1;
-    const size_t RANK_MELD_OFFSET = 2; // Start rank melds from index 2
-    const size_t TOTAL_MELD_TYPES = 13; // Red3, Black3, 4-Ace (11 ranks)
+    namespace {
+        // Fixed meld‐slot indices
+        constexpr std::size_t RED_THREE_MELD_INDEX   = 0;
+        constexpr std::size_t BLACK_THREE_MELD_INDEX = 1;
+        constexpr std::size_t RANK_MELD_OFFSET       = 2;
+    
+        // Rank range for normal melds
+        constexpr int           FIRST_RANK   = static_cast<int>(Rank::Four);
+        constexpr int           LAST_RANK    = static_cast<int>(Rank::Ace);
+        constexpr std::size_t   RANK_COUNT   = static_cast<std::size_t>(LAST_RANK - FIRST_RANK + 1);
+    
+        // Total slots = 2 special melds + one per rank
+        constexpr std::size_t TOTAL_MELD_TYPES = RANK_MELD_OFFSET + RANK_COUNT;
+    }
 }
 
 TeamRoundState::TeamRoundState() {
@@ -38,29 +48,19 @@ void TeamRoundState::createMelds() {
     melds[RED_THREE_MELD_INDEX]   = std::make_unique<RedThreeMeld>();
     melds[BLACK_THREE_MELD_INDEX] = std::make_unique<BlackThreeMeld>();
 
-    constexpr int first = static_cast<int>(Rank::Four);
-    constexpr int last  = static_cast<int>(Rank::Ace);
-    constexpr size_t N   = static_cast<size_t>(last - first + 1);
-
     // templated (generic) lambda: for each Is in the sequence, create the corresponding Meld<r>
-    auto instantiateRankMelds = 
-        [this, first]<std::size_t... Is>(std::index_sequence<Is...>) {
-        // use a fold expression to expand the pack
-        ((
-            [&] {
-                constexpr Rank r = static_cast<Rank>(first + Is);
-                auto idxOpt = getIndexForRank(r);
-                if (!idxOpt) {
-                    throw std::logic_error(
-                        "createMelds: cannot determine index for rank " +
-                        std::to_string(static_cast<int>(r))
-                    );
-                }
-                melds[*idxOpt] = std::make_unique<Meld<r>>();
-            }()
-        ), ...);
+     // 3) Unroll the rank-melds at compile time
+    auto instantiateRankMelds = [this]<std::size_t... Is>(std::index_sequence<Is...>) {
+        (
+            // one expression per Is
+            ( melds[RANK_MELD_OFFSET + Is] =
+                std::make_unique<
+                    Meld< static_cast<Rank>(FIRST_RANK + Is) >
+                >()
+            ),
+        ...);
     };
-    instantiateRankMelds(std::make_index_sequence<N>{});
+    instantiateRankMelds(std::make_index_sequence<RANK_COUNT>{});
 }
 
 // Get the team's melds (read-only access to the pointers)
