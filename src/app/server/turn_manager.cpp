@@ -158,7 +158,7 @@ TurnActionResult TurnManager::handleMelds(const std::vector<MeldRequest>& meldRe
 // ToDo: Implement revert take discard pile action
 
 TurnActionResult TurnManager::handleDiscard(const Card& cardToDiscard) {
-    if (turnPhase != TurnPhase::MeldDiscard) {
+    /*if (turnPhase != TurnPhase::MeldDiscard) {
         return TurnActionResult::Error_InvalidAction; // Cannot discard outside of MeldDiscard phase
     }
     // Check if hand actually contains the card
@@ -200,6 +200,11 @@ TurnActionResult TurnManager::handleDiscard(const Card& cardToDiscard) {
     } else {
         return TurnActionResult::Success_TurnOver;
     }
+*/
+    return {
+        TurnActionStatus::Error_InvalidAction,
+        "Discard failed."
+    };
 }
 
 
@@ -374,6 +379,7 @@ Status TurnManager::addRedThreeCardsToMeld(const std::vector<Card>& redThreeCard
     if (!status.has_value())
         return std::unexpected(status.error());
     RedThreeMeld->initialize(redThreeCards);
+    return {};
 }
 
 std::expected<Card, TurnActionResult> TurnManager::drawUntilNonRedThree(ServerDeck& deck) {
@@ -434,6 +440,7 @@ const MeldCommitment& initializationCommitment) const {
             " must contain at least " + std::to_string(initializationCommitment.count) +
             " cards."
         });
+    return {}; // Return success
 }
 
 std::expected<void, TurnActionResult> TurnManager::checkAddToExistingCommitment
@@ -459,6 +466,7 @@ const MeldCommitment& addToExistingCommitment) const {
             " at least " + std::to_string(addToExistingCommitment.count) +
             " cards."
         });
+    return {}; // Return success
 }
 
 void TurnManager::initializeRankMelds(
