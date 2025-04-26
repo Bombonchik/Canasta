@@ -1,6 +1,12 @@
 
 #include "meld.hpp"
 
+void BaseMeld::reset() {
+    isActive = false;
+    points = 0;
+    hasPendingReversible = false;
+}
+
 // Implementation of RedThreeMeld::initialize
 void RedThreeMeld::initialize(const std::vector<Card>& cards) {
     auto status = checkInitialization(cards);
@@ -35,9 +41,15 @@ Status RedThreeMeld::checkInitialization(const std::vector<Card>& cards) const {
 }
 
 // Implementation of RedThreeMeld::addCard
-void RedThreeMeld::addCards(const std::vector<Card>& cards) {
+void RedThreeMeld::addCards(const std::vector<Card>& cards, bool reversible) {
     auto status = checkCardsAddition(cards);
     assert(status.has_value() && "Red Three Meld addition failed");
+    if (reversible) {
+        backupRedThreeCount = redThreeCount; // Backup current count
+        hasPendingReversible = true; // Mark as reversible
+    } else {
+        hasPendingReversible = false; // No reversible action
+    }
     redThreeCount++;
     updatePoints(); // Update points after adding a card
 }
@@ -99,7 +111,7 @@ Status BlackThreeMeld::checkInitialization(const std::vector<Card>& cards) const
 }
 
 // Implementation of BlackThreeMeld::addCard
-void BlackThreeMeld::addCards(const std::vector<Card>& cards) {
+void BlackThreeMeld::addCards(const std::vector<Card>& cards, bool reversible) {
     throw std::logic_error("BlackThreeMeld: addCards() unsupported");
 }
 
@@ -119,3 +131,26 @@ void BlackThreeMeld::updatePoints() {
     points = blackThreeCount * Card(Rank::Three, CardColor::BLACK).getPoints();
 }
 
+void RedThreeMeld::reset() {
+    BaseMeld::reset();
+    redThreeCount = 0;
+    backupRedThreeCount = 0;
+}
+
+void RedThreeMeld::revertAddCards() {
+    if (!hasPendingReversible) {
+        return; // No reversible action
+    }
+    redThreeCount = backupRedThreeCount; // Restore the count
+    hasPendingReversible = false; // Clear the reversible state
+    updatePoints(); // Update points after reverting
+}
+
+void BlackThreeMeld::reset() {
+    BaseMeld::reset();
+    blackThreeCount = 0;
+}
+
+void BlackThreeMeld::revertAddCards() {
+    throw std::logic_error("BlackThreeMeld: revertAddCards() unsupported");
+}

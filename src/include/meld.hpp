@@ -40,14 +40,15 @@ class BaseMeld {
 protected:
     bool isActive;
     int points; // Cached points value
+    bool hasPendingReversible;
 public:
-    BaseMeld() : isActive(false), points(0) {}
+    BaseMeld() : isActive(false), points(0), hasPendingReversible(false) {}
     virtual ~BaseMeld() = default;
 
     virtual Status checkInitialization(const std::vector<Card>& cards) const = 0;
     virtual void initialize(const std::vector<Card>& cards) = 0;
     virtual Status checkCardsAddition(const std::vector<Card>& cards) const = 0;
-    virtual void addCards(const std::vector<Card>& cards) = 0;
+    virtual void addCards(const std::vector<Card>& cards, bool reversible = false) = 0;
     virtual int getPoints() const = 0; // Get the cached points
     virtual void updatePoints() = 0;   // Update the cached points
     bool isInitialized() const { return isActive; }
@@ -55,12 +56,15 @@ public:
     virtual bool isCanastaMeld() const { return false; } // Default: Not a canasta
     virtual std::optional<CanastaType> getCanastaType() const { return std::nullopt; } // Default: No canasta type
 
+    virtual void reset();
+    virtual void revertAddCards() = 0; // Revert the last addCards operation, if applicable
+
     // Correctly templated serialization method
     template <class Archive>
     void serialize(Archive& archive)
     {
         // Removed updatePoints() call - assume points are updated when state changes
-        archive(CEREAL_NVP(isActive), CEREAL_NVP(points));
+        archive(CEREAL_NVP(isActive), CEREAL_NVP(points), CEREAL_NVP(hasPendingReversible));
     }
 };
 
@@ -69,8 +73,12 @@ template <Rank R>
 class Meld final : public BaseMeld {
 private:
     bool isCanasta;
+
     std::vector<Card> naturalCards;
     std::vector<Card> wildCards;
+
+    std::vector<Card> backupNaturalCards;
+    std::vector<Card> backupWildCards;
 
 public:
     Meld() : isCanasta(false) {}
@@ -78,16 +86,21 @@ public:
     Status checkInitialization(const std::vector<Card>& cards) const override;
     void initialize(const std::vector<Card>& cards) override;
     Status checkCardsAddition(const std::vector<Card>& cards) const override;
-    void addCards(const std::vector<Card>& cards) override;
+    void addCards(const std::vector<Card>& cards, bool reversible) override;
     int getPoints() const override;
     void updatePoints() override;
     bool isCanastaMeld() const override { return isCanasta; }
     std::optional<CanastaType> getCanastaType() const override;
     static bool isCorrectNaturalList(const std::vector<Card>& cards);
 
+    void reset() override;
+    void revertAddCards() override;
+
     template <class Archive>
     void serialize(Archive& archive) {
-        archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(isCanasta), CEREAL_NVP(naturalCards), CEREAL_NVP(wildCards));
+        archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(isCanasta),
+        CEREAL_NVP(naturalCards), CEREAL_NVP(wildCards), CEREAL_NVP(backupNaturalCards),
+        CEREAL_NVP(backupWildCards));
     }
 private:
     void updateCanastaStatus();
@@ -99,6 +112,7 @@ private:
 class RedThreeMeld final : public BaseMeld {
 private:
     int redThreeCount;
+    int backupRedThreeCount;
 
 public:
     RedThreeMeld() : redThreeCount(0) {}
@@ -106,13 +120,17 @@ public:
     Status checkInitialization(const std::vector<Card>& cards) const override;
     void initialize(const std::vector<Card>& cards) override;
     Status checkCardsAddition(const std::vector<Card>& cards) const override;
-    void addCards(const std::vector<Card>& cards) override;
+    void addCards(const std::vector<Card>& cards, bool reversible) override;
     int getPoints() const override;
     void updatePoints() override;
 
+    void reset() override;
+    void revertAddCards() override;
+
     template <class Archive>
     void serialize(Archive& archive) {
-        archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(redThreeCount));
+        archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(redThreeCount),
+        CEREAL_MVP(backupRedThreeCount));
     }
 private:
     Status validateCards(const std::vector<Card>& cards, std::size_t redThreeCount = 0) const;
@@ -129,9 +147,12 @@ public:
     Status checkInitialization(const std::vector<Card>& cards) const override;
     void initialize(const std::vector<Card>& cards) override;
     Status checkCardsAddition(const std::vector<Card>& cards) const override;
-    void addCards(const std::vector<Card>& cards) override;
+    void addCards(const std::vector<Card>& cards, bool reversible) override;
     int getPoints() const override;
     void updatePoints() override;
+
+    void reset() override;
+    void revertAddCards() override;
 
     template <class Archive>
     void serialize(Archive& archive) {
@@ -200,13 +221,24 @@ Status Meld<R>::checkInitialization(const std::vector<Card>& cards) const {
 
 // Implementation of Meld<R>::addCard
 template <Rank R>
-void Meld<R>::addCards(const std::vector<Card>& cards) {
+void Meld<R>::addCards(const std::vector<Card>& cards, bool reversible) {
     auto status = checkCardsAddition(cards);
     assert(status.has_value() && "Meld addition failed");
-    if (card.getType() == CardType::Wild)
-        wildCards.push_back(card);
-    else
-        naturalCards.push_back(card);
+
+    if (reversible) {
+        backupNaturalCards = naturalCards; // Copy current state
+        backupWildCards = wildCards;       // Copy current state
+        hasPendingReversible = true;
+    } else {
+        hasPendingReversible = false; // No reversible action
+    }
+    for (const auto& card : cards) {
+        if (card.getType() == CardType::Wild) {
+            wildCards.push_back(card);
+        } else {
+            naturalCards.push_back(card);
+        }
+    }
     updateCanastaStatus();
     updatePoints(); // Update points after adding a card
     return {};
@@ -284,6 +316,30 @@ bool Meld<R>::isCorrectNaturalList(const std::vector<Card>& cards) {
         }
     }
     return true;
+}
+
+// Implementation of Meld<R>::reset
+template <Rank R>
+void Meld<R>::reset() {
+    BaseMeld::reset();
+    naturalCards.clear();
+    wildCards.clear();
+    backupNaturalCards.clear();
+    backupWildCards.clear();
+    isCanasta = false;
+}
+
+// Implementation of Meld<R>::revertAddCards
+template <Rank R>
+void Meld<R>::revertAddCards() {
+    if (!hasPendingReversible) {
+        return; // No reversible action to revert
+    }
+    naturalCards = backupNaturalCards; // Restore previous state
+    wildCards = backupWildCards;       // Restore previous state
+    hasPendingReversible = false;      // Clear the reversible state
+    updateCanastaStatus(); // Update canasta status
+    updatePoints(); // Update points after reverting
 }
 
 
