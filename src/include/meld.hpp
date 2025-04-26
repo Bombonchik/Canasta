@@ -119,7 +119,6 @@ private:
     std::vector<Card> backupRedThreeCards;
 
 public:
-    RedThreeMeld();
 
     Status checkInitialization(const std::vector<Card>& cards) const override;
     void initialize(const std::vector<Card>& cards) override;
@@ -135,8 +134,8 @@ public:
 
     template <class Archive>
     void serialize(Archive& archive) {
-        archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(redThreeCount),
-        CEREAL_MVP(backupRedThreeCount));
+        archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(redThreeCards),
+        CEREAL_NVP(backupRedThreeCards));
     }
 private:
     Status validateCards(const std::vector<Card>& cards, std::size_t redThreeCount = 0) const;
@@ -148,8 +147,6 @@ private:
     std::vector<Card> blackThreeCards;
 
 public:
-    BlackThreeMeld();
-    
     Status checkInitialization(const std::vector<Card>& cards) const override;
     void initialize(const std::vector<Card>& cards) override;
     Status checkCardsAddition(const std::vector<Card>& cards) const override;
@@ -164,7 +161,7 @@ public:
 
     template <class Archive>
     void serialize(Archive& archive) {
-        archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(blackThreeCount));
+        archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(blackThreeCards));
     }
 };
 
@@ -179,7 +176,7 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, BlackThreeMeld)
 // Implementation of Meld<R>::initialize
 template <Rank R>
 void Meld<R>::initialize(const std::vector<Card>& cards) {
-    auto status = checkInitialization(cards)
+    Status status = checkInitialization(cards);
     assert(status.has_value() && "Meld initialization failed");
     for (const auto& card : cards) {
         if (card.getType() == CardType::Wild) {
@@ -191,7 +188,6 @@ void Meld<R>::initialize(const std::vector<Card>& cards) {
     isActive = true;
     updateCanastaStatus();
     updatePoints(); // Update points after initialization
-    return {};
 }
 
 // Implementation of Meld<R>::validateCards
@@ -249,7 +245,6 @@ void Meld<R>::addCards(const std::vector<Card>& cards, bool reversible) {
     }
     updateCanastaStatus();
     updatePoints(); // Update points after adding a card
-    return {};
 }
 
 // Implementation of Meld<R>::checkCardAddition
@@ -261,7 +256,7 @@ Status Meld<R>::checkCardsAddition(const std::vector<Card>& cards) const {
     if (cards.empty()) {
         return std::unexpected("You must add at least 1 card");
     }
-    validateCards(cards, naturalCards.size(), wildCards.size());
+    return validateCards(cards, naturalCards.size(), wildCards.size());
 }
 
 // Implementation of Meld<R>::updateCanastaStatus
