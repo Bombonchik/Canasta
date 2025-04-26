@@ -171,5 +171,15 @@ const BaseMeld* TeamRoundState::getMeldForRank(Rank r) const {
     return const_cast<TeamRoundState*>(this)->getMeldForRank(r);
 }
 
+// Const overload for Black Three Meld
+const BaseMeld* TeamRoundState::getBlackThreeMeld() const {
+    return const_cast<TeamRoundState*>(this)->getBlackThreeMeld();
+}
+
+// Const overload for Red Three Meld
+const BaseMeld* TeamRoundState::getRedThreeMeld() const {
+    return const_cast<TeamRoundState*>(this)->getRedThreeMeld();
+}
+
 // Note: The Cereal serialization function template is defined inline
 // in the header file (team_round_state.hpp) and does not need a separate implementation here.
