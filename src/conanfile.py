@@ -8,19 +8,9 @@ class ConanApplication(ConanFile):
     package_type = "application"
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeToolchain", "CMakeDeps"
-    #generators = "CMakeDeps"
 
     def layout(self):
         cmake_layout(self)
-
-    """def generate(self):
-        tc = CMakeToolchain(self)
-        tc.user_presets_path = False
-        tc.generate()
-
-        # 2) Dependency configs (spdlogConfig.cmake, etc.)
-        deps = CMakeDeps(self)
-        deps.generate()"""
 
     def requirements(self):
         requirements = self.conan_data.get('requirements', [])
