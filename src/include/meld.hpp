@@ -59,6 +59,8 @@ public:
     virtual void reset();
     virtual void revertAddCards() = 0; // Revert the last addCards operation, if applicable
 
+    virtual std::vector<Card> getCards() const = 0;
+
     // Correctly templated serialization method
     template <class Archive>
     void serialize(Archive& archive)
@@ -96,6 +98,8 @@ public:
     void reset() override;
     void revertAddCards() override;
 
+    std::vector<Card> getCards() const override;
+
     template <class Archive>
     void serialize(Archive& archive) {
         archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(isCanasta),
@@ -127,6 +131,8 @@ public:
     void reset() override;
     void revertAddCards() override;
 
+    std::vector<Card> getCards() const override;
+
     template <class Archive>
     void serialize(Archive& archive) {
         archive(cereal::base_class<BaseMeld>(this), CEREAL_NVP(redThreeCount),
@@ -153,6 +159,8 @@ public:
 
     void reset() override;
     void revertAddCards() override;
+
+    std::vector<Card> getCards() const override;
 
     template <class Archive>
     void serialize(Archive& archive) {
@@ -340,6 +348,16 @@ void Meld<R>::revertAddCards() {
     hasPendingReversible = false;      // Clear the reversible state
     updateCanastaStatus(); // Update canasta status
     updatePoints(); // Update points after reverting
+}
+
+// Implementation of Meld<R>::getCards
+template <Rank R>
+std::vector<Card> Meld<R>::getCards() const {
+    std::vector<Card> allCards;
+    allCards.reserve(naturalCards.size() + wildCards.size());
+    allCards.insert(allCards.end(), wildCards.begin(), wildCards.end());
+    allCards.insert(allCards.end(), naturalCards.begin(), naturalCards.end());
+    return allCards;
 }
 
 

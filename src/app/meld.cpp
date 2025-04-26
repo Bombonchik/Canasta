@@ -154,3 +154,11 @@ void BlackThreeMeld::reset() {
 void BlackThreeMeld::revertAddCards() {
     throw std::logic_error("BlackThreeMeld: revertAddCards() unsupported");
 }
+
+std::vector<Card> RedThreeMeld::getCards() const {
+    return redThreeCards;
+}
+
+std::vector<Card> BlackThreeMeld::getCards() const {
+    return blackThreeCards;
+}
