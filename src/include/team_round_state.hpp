@@ -44,6 +44,12 @@ public:
     // Const overload (for read-only callers, like RuleEngine)
     const BaseMeld* getMeldForRank(Rank r) const;
 
+    // Const overload for Black Three Meld
+    const BaseMeld* getBlackThreeMeld() const;
+
+    // Const overload for Red Three Meld
+    const BaseMeld* getRedThreeMeld() const;
+
     void reset();
 
     // Cereal serialization function
