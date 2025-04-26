@@ -10,6 +10,7 @@
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/access.hpp>
 #include <cassert>
+#include <optional>
 
 
 using Status = std::expected<void, std::string>;
