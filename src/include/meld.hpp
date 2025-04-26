@@ -111,11 +111,11 @@ private:
 // Red Three Meld (Special case)
 class RedThreeMeld final : public BaseMeld {
 private:
-    int redThreeCount;
-    int backupRedThreeCount;
+    std::vector<Card> redThreeCards;
+    std::vector<Card> backupRedThreeCards;
 
 public:
-    RedThreeMeld() : redThreeCount(0) {}
+    RedThreeMeld();
 
     Status checkInitialization(const std::vector<Card>& cards) const override;
     void initialize(const std::vector<Card>& cards) override;
@@ -139,10 +139,10 @@ private:
 // Black Three Meld (Special case)
 class BlackThreeMeld final : public BaseMeld {
 private:
-    int blackThreeCount;
+    std::vector<Card> blackThreeCards;
 
 public:
-    BlackThreeMeld() : blackThreeCount(0) {}
+    BlackThreeMeld();
     
     Status checkInitialization(const std::vector<Card>& cards) const override;
     void initialize(const std::vector<Card>& cards) override;

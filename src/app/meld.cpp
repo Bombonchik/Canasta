@@ -11,7 +11,7 @@ void BaseMeld::reset() {
 void RedThreeMeld::initialize(const std::vector<Card>& cards) {
     auto status = checkInitialization(cards);
     assert(status.has_value() && "Red Three Meld initialization failed");
-    redThreeCount = cards.size();
+    redThreeCards = cards;
     isActive = true;
     updatePoints(); // Update points after initialization
 }
@@ -45,12 +45,12 @@ void RedThreeMeld::addCards(const std::vector<Card>& cards, bool reversible) {
     auto status = checkCardsAddition(cards);
     assert(status.has_value() && "Red Three Meld addition failed");
     if (reversible) {
-        backupRedThreeCount = redThreeCount; // Backup current count
+        backupRedThreeCards = redThreeCards; // Backup current cards
         hasPendingReversible = true; // Mark as reversible
     } else {
         hasPendingReversible = false; // No reversible action
     }
-    redThreeCount++;
+    redThreeCards.insert(redThreeCards.end(), cards.begin(), cards.end());
     updatePoints(); // Update points after adding a card
 }
 
@@ -62,7 +62,7 @@ Status RedThreeMeld::checkCardsAddition(const std::vector<Card>& cards) const {
     if (cards.empty()) {
         return std::unexpected("You must add at least 1 card");
     }
-    return validateCards(cards, redThreeCount);
+    return validateCards(cards, redThreeCards.size());
 }
 
 // Implementation of RedThreeMeld::getPoints
@@ -74,8 +74,8 @@ int RedThreeMeld::getPoints() const {
 // Implementation of RedThreeMeld::updatePoints
 void RedThreeMeld::updatePoints() {
     const int redThreePointsValue = Card(Rank::Three, CardColor::RED).getPoints();
-    int calculatedPoints = redThreeCount * redThreePointsValue;
-    if (redThreeCount == 4) {
+    int calculatedPoints = redThreeCards.size() * redThreePointsValue;
+    if (redThreeCards.size() == 4) {
         calculatedPoints *= 2; // double points for a complete Red Three Meld
     }
     points = calculatedPoints; // Update the member variable
@@ -86,7 +86,7 @@ void RedThreeMeld::updatePoints() {
 void BlackThreeMeld::initialize(const std::vector<Card>& cards) {
     auto status = checkInitialization(cards);
     assert(status.has_value() && "Black Three Meld initialization failed");
-    blackThreeCount = cards.size();
+    blackThreeCards = cards;
     isActive = true;
     updatePoints(); // Update points after initialization
 }
@@ -128,27 +128,27 @@ int BlackThreeMeld::getPoints() const {
 
 // Implementation of BlackThreeMeld::updatePoints
 void BlackThreeMeld::updatePoints() {
-    points = blackThreeCount * Card(Rank::Three, CardColor::BLACK).getPoints();
+    points = blackThreeCards.size() * Card(Rank::Three, CardColor::BLACK).getPoints();
 }
 
 void RedThreeMeld::reset() {
     BaseMeld::reset();
-    redThreeCount = 0;
-    backupRedThreeCount = 0;
+    redThreeCards.clear();
+    backupRedThreeCards.clear();
 }
 
 void RedThreeMeld::revertAddCards() {
     if (!hasPendingReversible) {
         return; // No reversible action
     }
-    redThreeCount = backupRedThreeCount; // Restore the count
+    redThreeCards = backupRedThreeCards; // Restore the count
     hasPendingReversible = false; // Clear the reversible state
     updatePoints(); // Update points after reverting
 }
 
 void BlackThreeMeld::reset() {
     BaseMeld::reset();
-    blackThreeCount = 0;
+    blackThreeCards.clear();
 }
 
 void BlackThreeMeld::revertAddCards() {
