@@ -16,12 +16,11 @@ TurnManager::TurnManager(
     hand(std::ref(player.getHand())),
     teamRoundState(std::ref(teamRoundState)),
     serverDeck(std::ref(serverDeck)),
-    teamHasInitialMeld(teamAlreadyHasInitialMeld),
+    teamHasInitialRankMeld(teamAlreadyHasInitialMeld),
     teamTotalScore(teamTotalScore),
     drewFromDeck(false),
     tookDiscardPile(false),
-    meldsHandled(false),
-    mainDeckBecameEmpty(false)
+    meldsHandled(false)
 {}
 
 // --- Player Action Handlers ---
@@ -83,15 +82,14 @@ TurnActionResult TurnManager::handleTakeDiscardPile() {
     
 
     auto takeDiscardPileResult = serverDeck.get()
-        .takeDiscardPile(!teamHasInitialMeld);
+        .takeDiscardPile(!teamHasInitialRankMeld);
     if (!takeDiscardPileResult.has_value()) {
-        //provisionalMode = false; // Reset provisional mode
         return {
             TurnActionStatus::Error_InvalidAction,
             takeDiscardPileResult.error()
         };
     }
-    hand.get().addCards(takeDiscardPileResult.value(), !teamHasInitialMeld);
+    hand.get().addCards(takeDiscardPileResult.value(), !teamHasInitialRankMeld);
 
     commitment = checkTakingDiscardPileResult.value();
 
@@ -108,17 +106,22 @@ TurnActionResult TurnManager::handleMelds(const std::vector<MeldRequest>& meldRe
             TurnActionStatus::Error_InvalidAction,
             "You must draw from the deck or take the discard pile before melding."
         };
+    if (meldsHandled)
+        return {
+            TurnActionStatus::Error_InvalidAction,
+            "You have already handled melds this turn."
+        };
 
     auto checkResult = checkMeldRequestsCardsInHand(meldRequests);
     if (!checkResult.has_value())
         return checkResult.error();
-    size_t cardsPotentiallyLeftInHandCount = checkResult.value();
+    std::size_t cardsPotentiallyLeftInHandCount = checkResult.value();
 
     std::vector<std::vector<Card>> meldSuggestions;
-    std::vector<RankMeldProposal> rankInitializationProposals, additionProposals;
     std::optional<BlackThreeMeldProposal> blackThreeInitializationProposal;
+    clearProposals(); // Clear any previous proposals
 
-    processMeldRequests(meldRequests, meldSuggestions, additionProposals);
+    processMeldRequests(meldRequests, meldSuggestions, rankAdditionProposals);
     
     // Process meld suggestions
     auto meldSuggestionsStatus = processMeldSuggestions(meldSuggestions,
@@ -132,23 +135,35 @@ TurnActionResult TurnManager::handleMelds(const std::vector<MeldRequest>& meldRe
         return rankInitializationStatus.error();
 
     // Check if the rank addition proposals are valid
-    auto rankAdditionStatus = processRankAdditionProposals(additionProposals);
+    auto rankAdditionStatus = processRankAdditionProposals(rankAdditionProposals);
     if (!rankAdditionStatus.has_value())
         return rankAdditionStatus.error();
 
+    initializeRankMelds(rankInitializationProposals);
+    addCardsToExistingMelds(rankAdditionProposals);
+
+    auto canGoingOut = RuleEngine::canGoingOut(
+        cardsPotentiallyLeftInHandCount, teamRoundState.get());
+
     // Check if the black three initialization proposal is valid
     auto blackThreeInitializationStatus = processBlackThreeInitializationProposal(
-        blackThreeInitializationProposal, cardsPotentiallyLeftInHandCount);
-    if (!blackThreeInitializationStatus.has_value())
+        blackThreeInitializationProposal, canGoingOut);
+    if (!blackThreeInitializationStatus.has_value()) {
+        // Revert rank initialization and addition proposals in order to maintain consistency
+        revertRankMeldActions(rankInitializationProposals, rankAdditionProposals);
         return blackThreeInitializationStatus.error();
+    }
 
-    initializeRankMelds(rankInitializationProposals);
-    addCardsToExistingMelds(additionProposals);
     initializeBlackThreeMeld(blackThreeInitializationProposal);
     
     meldsHandled = true; // Mark that melds have been handled
-    
 
+    if (canGoingOut && cardsPotentiallyLeftInHandCount == 0) // immediate going out
+        return {
+            TurnActionStatus::Success_WentOut,
+            "You have gone out successfully."
+        };
+    
     return {
         TurnActionStatus::Success_TurnContinues,
         "Melds processed successfully."
@@ -158,55 +173,64 @@ TurnActionResult TurnManager::handleMelds(const std::vector<MeldRequest>& meldRe
 // ToDo: Implement revert take discard pile action
 
 TurnActionResult TurnManager::handleDiscard(const Card& cardToDiscard) {
-    /*if (turnPhase != TurnPhase::MeldDiscard) {
-        return TurnActionResult::Error_InvalidAction; // Cannot discard outside of MeldDiscard phase
-    }
-    // Check if hand actually contains the card
-    if (!hand.containsCard(cardToDiscard)) {
-         return TurnActionResult::Error_InvalidAction; // Card not in hand
-    }
-    // Basic rule check (e.g., cannot discard Red Three)
-    if (!RuleEngine::canDiscard(hand, cardToDiscard)) { // Assuming RuleEngine has this static check
-         return TurnActionResult::Error_InvalidAction; // Invalid card type to discard
-    }
+    if (!drewFromDeck && !tookDiscardPile)
+        return {
+            TurnActionStatus::Error_InvalidAction,
+            "You must draw from the deck or take the discard pile before discarding."
+        };
+    assert(!hand.get().isEmpty() && "Invariant violated: hand should not be empty");
+    if (!RuleEngine::canDiscard(hand.get(), cardToDiscard))
+        return {
+            TurnActionStatus::Error_InvalidAction,
+            "You cannot discard a card that is not in your hand."
+        };
+    if (tookDiscardPile && !meldsHandled)
+        return {
+            TurnActionStatus::Error_InvalidAction,
+            "You must handle melds before discarding."
+        };
 
-    // TODO: Implement actual discard logic
-    // 1. If team_has_initial_meld_:
-    //    a. Commit: Remove card from hand_, add to discard_pile_
-    //    b. Check for going out condition
-    //    c. Return Success_TurnOver or Success_WentOut
-    // 2. If !team_has_initial_meld_:
-    //    a. Perform Final Initial Meld Check on provisional_initial_melds_ using RuleEngine
-    //    b. If Check Passes:
-    //       i. Commit: commitProvisionalMelds(), remove card from hand, add to discard_pile_
-    //       ii. Clear provisional state
-    //       iii. Check for going out condition (usually not possible on initial meld)
-    //       iv. Return Success_TurnOver
-    //    c. If Check Fails:
-    //       i. If took_discard_pile_this_turn_:
-    //          - revertTakeDiscardPileAction()
-    //          - Return Error_RevertAndForceDraw
-    //       ii. Else (drew from deck):
-    //          - undoProvisionalMeldsAfterDraw()
-    //          - Return Error_MeldRequirementNotMet
-
-    // Placeholder implementation
-    hand.removeCard(cardToDiscard); // Assume valid for now
-    discardPile.push_back(cardToDiscard); // Assume valid for now
-    clearProvisionalState(); // Clear any provisional state if it existed
-
-    if (hand.isEmpty() && checkGoingOutCondition()) {
-        return TurnActionResult::Success_WentOut;
-    } else {
-        return TurnActionResult::Success_TurnOver;
+    auto handCardCount = hand.get().cardCount();
+    bool canGoingOut = false;
+    if (handCardCount == 1) {
+        canGoingOut = RuleEngine::canGoingOut(handCardCount, teamRoundState.get());
+        if (!canGoingOut)
+            return {
+                TurnActionStatus::Error_InvalidAction,
+                "You don't meet the requirements to go out."
+            };
     }
-*/
+    assert(hand.get().removeCard(cardToDiscard) && "Invariant violated: card should be in hand");
+    serverDeck.get().discardCard(cardToDiscard);
+    if (canGoingOut)
+        return {
+            TurnActionStatus::Success_WentOut,
+            "You have gone out successfully."
+        };
+    
     return {
-        TurnActionStatus::Error_InvalidAction,
-        "Discard failed."
+        TurnActionStatus::Success_TurnOver,
+        "Turn over successfully."
     };
 }
 
+TurnActionResult TurnManager::handleRevert() {
+    if (!tookDiscardPile && !meldsHandled)
+        return {
+            TurnActionStatus::Error_InvalidAction,
+            "You can only revert after taking the discard pile or handling melds."
+        };
+    if (tookDiscardPile) {
+        revertTakeDiscardPileAction();
+    }
+    if (meldsHandled) {
+        revertRankMeldActions(rankInitializationProposals, rankAdditionProposals);
+    }
+    return {
+        TurnActionStatus::Success_TurnContinues,
+        "Turn reverted successfully."
+    };
+}
 
 // --- Private Helper Methods ---
 
@@ -268,7 +292,7 @@ std::expected<void, TurnActionResult> TurnManager::processMeldSuggestions
         auto meld = suggestedMeld.value();
         auto possibleRank = meld.rank;
         if (meld.type == CandidateMeldType::BlackThree) {
-            if (!teamHasInitialMeld)
+            if (!teamHasInitialRankMeld)
                 return std::unexpected(TurnActionResult{
                     TurnActionStatus::Error_InvalidMeld,
                     "Cannot form any meld containing Black Three cards before round's minimum point threshold was reached."
@@ -294,7 +318,7 @@ std::expected<void, TurnActionResult> TurnManager::processMeldSuggestions
 
 std::expected<void, TurnActionResult> TurnManager::processRankInitializationProposals
 (const std::vector<RankMeldProposal>& rankInitializationProposals) const {
-    if (rankInitializationProposals.empty() && !teamHasInitialMeld)
+    if (rankInitializationProposals.empty() && !teamHasInitialRankMeld)
         return std::unexpected(TurnActionResult{
             TurnActionStatus::Error_InvalidMeld,
             "You must initialize at least one meld."
@@ -308,7 +332,7 @@ std::expected<void, TurnActionResult> TurnManager::processRankInitializationProp
             maybePoints.error()
         });
 
-    if (!teamHasInitialMeld) {
+    if (!teamHasInitialRankMeld) {
         auto validateStatus = RuleEngine::validatePointsForInitialMelds(
             maybePoints.value(), teamTotalScore);
 
@@ -327,13 +351,17 @@ std::expected<void, TurnActionResult> TurnManager::processRankInitializationProp
 
 std::expected<void, TurnActionResult> TurnManager::processBlackThreeInitializationProposal
 (const std::optional<BlackThreeMeldProposal>& blackThreeProposal,
-    std::size_t cardsPotentiallyLeftInHandCount) const {
+    bool canGoingOut) const {
     if (!blackThreeProposal.has_value())
         return {}; // No Black Three proposal to process
+    if (!canGoingOut)
+        return std::unexpected(TurnActionResult{
+            TurnActionStatus::Error_InvalidMeld,
+            "You cannot initialize a Black Three meld without going out."
+        });
     auto status = RuleEngine::validateBlackThreeMeldInitializationProposal(
         blackThreeProposal.value(),
-        teamRoundState.get(),
-        cardsPotentiallyLeftInHandCount
+        teamRoundState.get()
     );
     if (!status.has_value())
         return std::unexpected(TurnActionResult{
@@ -347,7 +375,7 @@ std::expected<void, TurnActionResult> TurnManager::processRankAdditionProposals
 (const std::vector<RankMeldProposal>& rankAdditionProposals) const {
     if (rankAdditionProposals.empty())
         return {}; // No rank addition proposals to process
-    if (!teamHasInitialMeld)
+    if (!teamHasInitialRankMeld)
         return std::unexpected(TurnActionResult{
             TurnActionStatus::Error_InvalidAction,
             "You cannot add to a meld without initial melds."
@@ -366,21 +394,6 @@ std::expected<void, TurnActionResult> TurnManager::processRankAdditionProposals
     return {}; // Return success
 }
 
-Status TurnManager::addRedThreeCardsToMeld(const std::vector<Card>& redThreeCards) {
-    auto RedThreeMeld = teamRoundState.get().getRedThreeMeld();
-    if (RedThreeMeld->isInitialized()) {
-        auto status = RedThreeMeld->checkCardsAddition(redThreeCards);
-        if (!status.has_value())
-            return std::unexpected(status.error());
-        RedThreeMeld->addCards(redThreeCards);
-        return {};
-    }
-    auto status = RedThreeMeld->checkInitialization(redThreeCards);
-    if (!status.has_value())
-        return std::unexpected(status.error());
-    RedThreeMeld->initialize(redThreeCards);
-    return {};
-}
 
 std::expected<Card, TurnActionResult> TurnManager::drawUntilNonRedThree(ServerDeck& deck) {
     std::vector<Card> redThreeCards;
@@ -388,7 +401,6 @@ std::expected<Card, TurnActionResult> TurnManager::drawUntilNonRedThree(ServerDe
     {
         auto maybeCard = deck.drawCard();
         if (!maybeCard.has_value()) {
-            mainDeckBecameEmpty = true;
             return std::unexpected(TurnActionResult{
                 TurnActionStatus::Error_MainDeckEmpty,
                 "Main deck is empty. Try taking the discard pile."
@@ -398,7 +410,8 @@ std::expected<Card, TurnActionResult> TurnManager::drawUntilNonRedThree(ServerDe
         Card card = maybeCard.value();
         if (card.getType() != CardType::RedThree){ // First non-Red Three card
             if (!redThreeCards.empty()) {
-                auto status = addRedThreeCardsToMeld(redThreeCards);
+                auto status = RuleEngine::addRedThreeCardsToMeld(redThreeCards, 
+                    teamRoundState.get().getRedThreeMeld());
                 if (!status.has_value())
                     return std::unexpected(TurnActionResult{
                         TurnActionStatus::Error_InvalidAction,
@@ -410,12 +423,6 @@ std::expected<Card, TurnActionResult> TurnManager::drawUntilNonRedThree(ServerDe
         else
             redThreeCards.push_back(card);
     }
-}
-
-void TurnManager::clearProvisionalState() {
-    provisionalInitialMelds.clear();
-    preTakePileHandState.reset();
-    // took_discard_pile_this_turn_ should be reset at start of turn or after commit/revert
 }
 
 std::expected<void, TurnActionResult> TurnManager::checkInitializationCommitment
@@ -478,6 +485,23 @@ void TurnManager::initializeRankMelds(
         if (!status.has_value()) // Should never happen
             throw std::runtime_error(status.error());
         meld->initialize(proposal.cards);
+        for (const auto& card : proposal.cards) {
+            // Remove the cards from the hand
+            assert(hand.get().removeCard(card) && "Card should be in hand");
+        }
+    }
+}
+
+void TurnManager::revertRankMeldsInitialization(
+    const std::vector<RankMeldProposal>& rankInitializationProposals) {
+    for (const auto& proposal : rankInitializationProposals) {
+        auto meld = teamRoundState.get().getMeldForRank(proposal.rank);
+        assert(meld && meld->isInitialized() && "Invariant violated: meld should always be initialized here");
+        meld->reset();
+        // Revert the hand state
+        for (const auto& card : proposal.cards) {
+            hand.get().addCard(card); // Add the cards back to the hand
+        }
     }
 }
 
@@ -489,9 +513,26 @@ void TurnManager::addCardsToExistingMelds(
         auto status = meld->checkCardsAddition(proposal.cards);
         if (!status.has_value()) // Should never happen
             throw std::runtime_error(status.error());
-        meld->addCards(proposal.cards);
+        meld->addCards(proposal.cards, /*reversible = */true);
+        for (const auto& card : proposal.cards) {
+            // Remove the cards from the hand
+            assert(hand.get().removeCard(card) && "Card should be in hand");
+        }
     }
 }
+
+void TurnManager::revertRankMeldsAddition(
+    const std::vector<RankMeldProposal>& additionProposals) {
+    for (const auto& proposal : additionProposals) {
+        auto meld = teamRoundState.get().getMeldForRank(proposal.rank);
+        assert(meld && meld->isInitialized() && "Invariant violated: meld should always be initialized here");
+        meld->revertAddCards(); // should work
+        for (const auto& card : proposal.cards) {
+            hand.get().addCard(card); // Add the cards back to the hand
+        }
+    }
+}
+
 
 void TurnManager::initializeBlackThreeMeld(
     const std::optional<BlackThreeMeldProposal>& blackThreeProposal) {
@@ -499,30 +540,38 @@ void TurnManager::initializeBlackThreeMeld(
         return; // No Black Three proposal to initialize
     auto meld = teamRoundState.get().getBlackThreeMeld();
     assert(meld && "Invariant violated: meld should never be nullopt here");
-    auto status = meld->checkInitialization(blackThreeProposal->cards);
+    auto blackThreeCards = blackThreeProposal->cards;
+    auto status = meld->checkInitialization(blackThreeCards);
     if (!status.has_value()) // Should never happen
         throw std::runtime_error(status.error());
-    meld->initialize(blackThreeProposal->cards);
+    // If we got here it means the turn and round are ended by this player
+    meld->initialize(blackThreeCards);
+    for (const auto& card : blackThreeCards) {
+        // Remove the cards from the hand
+        assert(hand.get().removeCard(card) && "Card should be in hand");
+    }
 }
 
+// need to call when 
 void TurnManager::revertTakeDiscardPileAction() {
-    assert(tookDiscardPile && !teamHasInitialMeld && 
-        "Invariant violated: tookDiscardPile should be true and teamHasInitialMeld should be false here");
-
+    assert(tookDiscardPile && "Invariant violated: tookDiscardPile should be true here");
+    
     hand.get().revertAddCards(); // Revert the hand state
     serverDeck.get().revertTakeDiscardPile(); // Revert the discard pile action
 
     tookDiscardPile = false;
 }
 
-bool TurnManager::checkGoingOutCondition() const {
-    // TODO: Implement going out check
-    // 1. Check if hand is empty
-    // 2. Use RuleEngine to check if team meets requirements (e.g., canasta count)
-    if (!hand.get().isEmpty()) {
-        return false;
-    }
-    // Example: Assuming RuleEngine has a static check
-    // return RuleEngine::canGoOut(team);
-    return true; // Placeholder
+void TurnManager::revertRankMeldActions(const std::vector<RankMeldProposal>& rankInitializationProposals,
+const std::vector<RankMeldProposal>& additionProposals) {
+
+    revertRankMeldsInitialization(rankInitializationProposals);
+    revertRankMeldsAddition(additionProposals);
+    // Reset the state
+    meldsHandled = false;
+}
+
+void TurnManager::clearProposals() {
+    rankInitializationProposals.clear();
+    rankAdditionProposals.clear();
 }

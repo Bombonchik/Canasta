@@ -20,6 +20,7 @@ enum class TurnActionStatus {
     Success_TurnOver,           // Discard valid, turn ended normally
     Success_WentOut,            // Meld or Discard valid, player went out, turn ended
     Error_MainDeckEmpty,        // Attempted to draw from an empty main deck
+    Error_MainDeckEmptyDiscardPileCantBeTaken, // Attempted to take discard pile when main deck is empty
     Error_InvalidAction,        // General invalid action (e.g., wrong phase, bad cards, invalid discard type)
     Error_InvalidMeld,          // Invalid meld (e.g., not enough cards, wrong rank)
     Error_MeldRequirementNotMet,// Initial meld points not met after drawing deck (discard rejected, player must retry meld/discard)
@@ -94,9 +95,8 @@ public:
      */
     TurnActionResult handleDiscard(const Card& cardToDiscard);
 
-    // --- State Query ---
 
-
+    TurnActionResult handleRevert();
 private:
 
     std::reference_wrapper<Player> player; // Reference to the player whose turn it is
@@ -105,19 +105,17 @@ private:
     std::reference_wrapper<ServerDeck> serverDeck;
 
     // Turn-specific state flags and data
-    const bool teamHasInitialMeld;
+    const bool teamHasInitialRankMeld;
 
     int teamTotalScore; // Total score of the player's team
 
     bool drewFromDeck; // Tracks if the player drew from the deck
     bool tookDiscardPile; // Tracks if the player took the discard pile
     bool meldsHandled; // Tracks if handleMelds was successfully executed
-    bool mainDeckBecameEmpty; // Tracks if the main deck became empty during the turn
     std::optional<MeldCommitment> commitment;
+    std::vector<RankMeldProposal> rankInitializationProposals;
+    std::vector<RankMeldProposal> rankAdditionProposals;
 
-    // State stored only if !team_has_initial_meld_ for potential revert/validation
-    std::vector<RankMeldProposal> provisionalInitialMelds;
-    std::optional<std::vector<Card>> preTakePileHandState; // Hand state *before* taking pile
 
     // --- Private Helper Methods ---
     
@@ -145,12 +143,10 @@ private:
 
     std::expected<void, TurnActionResult> processBlackThreeInitializationProposal
     (const std::optional<BlackThreeMeldProposal>& blackThreeProposal,
-        std::size_t cardsPotentiallyLeftInHandCount) const;
+        bool canGoingOut) const;
 
     std::expected<void, TurnActionResult> processRankAdditionProposals
     (const std::vector<RankMeldProposal>& rankAdditionProposals) const;
-
-    Status addRedThreeCardsToMeld(const std::vector<Card>& redThreeCards);
 
     std::expected<Card, TurnActionResult> drawUntilNonRedThree(ServerDeck& deck);
 
@@ -165,20 +161,25 @@ private:
     void initializeRankMelds
     (const std::vector<RankMeldProposal>& rankInitializationProposals);
 
+    void revertRankMeldsInitialization
+    (const std::vector<RankMeldProposal>& rankInitializationProposals);
+
     void addCardsToExistingMelds
+    (const std::vector<RankMeldProposal>& additionProposals);
+
+    void revertRankMeldsAddition
     (const std::vector<RankMeldProposal>& additionProposals);
 
     void initializeBlackThreeMeld
     (const std::optional<BlackThreeMeldProposal>& blackThreeProposal);
 
-    // Resets provisional state after successful commit or non-mandatory revert
-    void clearProvisionalState();
-
     // Performs the mandatory revert when initial meld fails after taking the pile
     void revertTakeDiscardPileAction();
 
-    // Checks if the current hand state allows the player to go out
-    bool checkGoingOutCondition() const;
+    void revertRankMeldActions(const std::vector<RankMeldProposal>& rankInitializationProposals,
+        const std::vector<RankMeldProposal>& additionProposals);
+
+    void clearProposals();
 };
 
 
