@@ -28,6 +28,8 @@ public:
     // Add a player to the team (by reference)
     void addPlayer(Player& player);
 
+    bool hasPlayer(const Player& player) const;
+
     // Get the players in the team
     const std::vector<std::reference_wrapper<Player>>& getPlayers() const;
 

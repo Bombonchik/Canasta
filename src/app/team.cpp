@@ -16,6 +16,13 @@ void Team::addPlayer(Player& player) {
     players.push_back(std::ref(player));
 }
 
+// Check if the team has a specific player
+bool Team::hasPlayer(const Player& player) const {
+    // Check if the player is in the team
+    return std::any_of(players.begin(), players.end(),
+        [&](const std::reference_wrapper<Player>& p) { return &p.get() == &player; });
+}
+
 // Get the players in the team
 const std::vector<std::reference_wrapper<Player>>& Team::getPlayers() const {
     return players;
