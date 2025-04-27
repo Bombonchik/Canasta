@@ -2,17 +2,19 @@
 #include "server/server_deck.hpp"
 #include <stdexcept> // For std::runtime_error (optional, for errors)
 #include <utility>   // For std::move
+#include <cassert>   // For assert
 
 // Constructor - Initializes and shuffles a 108-card Canasta deck
 ServerDeck::ServerDeck(): isDiscardPileFrozen(false),
                         backupIsDiscardPileFrozen(false),
                         hasPendingReversible(false) {
-    initializeDeck();
+    initializeMainDeck();
     shuffle();
+    initializeDiscardPile();
 }
 
 // Helper to initialize a standard 108-card Canasta deck.
-void ServerDeck::initializeDeck() {
+void ServerDeck::initializeMainDeck() {
     mainDeck.clear(); // Ensure deck is empty before initializing
     mainDeck.reserve(108); // Reserve space for efficiency
 
@@ -37,6 +39,27 @@ void ServerDeck::initializeDeck() {
     if (mainDeck.size() != 108) {
         // Handle error: throw exception or log
         throw std::runtime_error("Deck initialization failed: Incorrect card count.");
+    }
+}
+
+// Initialize the discard pile
+void ServerDeck::initializeDiscardPile() {
+    discardPile.clear(); // Ensure discard pile is empty before initializing
+    // Draw cards until a non-Red Three is found for the initial discard
+    while (true) {
+        std::optional<Card> topCardOpt = drawCard();
+        assert(topCardOpt.has_value() && "Deck should not be empty when initializing discard pile");
+        Card topCard = *topCardOpt;
+
+        if (topCard.getType() == CardType::RedThree) {
+            // If a Red Three is drawn, place it aside (conceptually) and draw again.
+            continue; // Skip adding Red Three to the discard pile
+        } else {
+            discardCard(topCard);
+            if (topCard.getType() == CardType::Natural) {
+                break;
+            }
+        }
     }
 }
 

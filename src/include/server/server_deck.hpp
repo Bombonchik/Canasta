@@ -24,7 +24,9 @@ private:
     void shuffle();
 
     // Helper to initialize a standard 108-card Canasta deck.
-    void initializeDeck();
+    void initializeMainDeck();
+
+    void initializeDiscardPile();
 
     // --- Pile Management ---
 

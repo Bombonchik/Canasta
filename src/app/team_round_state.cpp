@@ -68,10 +68,11 @@ const std::vector<std::unique_ptr<BaseMeld>>& TeamRoundState::getMelds() const {
     return melds;
 }
 
-// Check if the team has made an initial meld
-bool TeamRoundState::hasMadeInitialMeld() const {
+// Check if the team has made an initial rank meld
+bool TeamRoundState::hasMadeInitialRankMeld() const {
     // Check if any meld is initialized
-    return std::any_of(melds.begin(), melds.end(),
+    auto firstRankMeld = melds.begin() + RANK_MELD_OFFSET;
+    return std::any_of(firstRankMeld, melds.end(),
         [](const std::unique_ptr<BaseMeld>& meldPtr) {
             return meldPtr && meldPtr->isInitialized();
         });
@@ -107,7 +108,7 @@ ScoreBreakdown TeamRoundState::getScoreBreakdown(int goingOutBonus) const {
         if (i == RED_THREE_MELD_INDEX) {
             // Points from RedThreeMeld are bonus points
             // If the team hasn't made an initial meld, make the points negative
-            breakdown.redThreeBonusPoints += meldTotalPoints * (hasMadeInitialMeld() ? 1 : -1);
+            breakdown.redThreeBonusPoints += meldTotalPoints * (hasMadeInitialRankMeld() ? 1 : -1);
             continue; // Skip further processing for this meld
         }
 
@@ -123,20 +124,11 @@ ScoreBreakdown TeamRoundState::getScoreBreakdown(int goingOutBonus) const {
             }
             // else: Should not happen if isCanastaMeld is true, handle error?
         }
-        breakdown.goingOutBonus = goingOutBonus;
         // Card points are the total points minus any canasta bonus
         breakdown.meldedCardsPoints += (meldTotalPoints - canastaBonus);
     }
 
-    // --- Calculate Hand Penalty ---
-    int totalPenalty = 0;
-    /*for (const auto& playerRef : players) {  // TODO
-        // Access the Player object through the reference_wrapper
-        const Player& player = playerRef.get();
-        totalPenalty += player.getHand().calculatePenalty();
-    }*/
-    // Penalty is stored as a negative value
-    breakdown.handPenaltyPoints = -totalPenalty;
+    breakdown.goingOutBonus = goingOutBonus;
 
     return breakdown;
 }

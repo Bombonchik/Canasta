@@ -23,7 +23,7 @@ public:
     const std::vector<std::unique_ptr<BaseMeld>>& getMelds() const;
 
     // Check if the team has made an initial meld (any meld is initialized)
-    bool hasMadeInitialMeld() const;
+    bool hasMadeInitialRankMeld() const;
 
     // Calculate the total points from the team's melds
     int calculateMeldPoints() const;
