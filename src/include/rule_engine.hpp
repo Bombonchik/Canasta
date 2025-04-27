@@ -71,8 +71,7 @@ public:
 
     static Status validateBlackThreeMeldInitializationProposal(
         const BlackThreeMeldProposal& blackThreeProposal,
-        const TeamRoundState& teamRoundState,
-        std::size_t cardsPotentiallyLeftInHandCount);
+        const TeamRoundState& teamRoundState);
 
     static Status validateRankMeldAdditionProposals(
         const std::vector<RankMeldProposal>& proposals,
@@ -95,7 +94,14 @@ public:
     static std::expected<MeldSuggestion, std::string>
     suggestMeld(const std::vector<Card>& cards);
 
+    /// Check if the player can go out before potential discard.
+    static bool canGoingOut
+    (std::size_t cardsPotentiallyLeftInHandCount, const TeamRoundState& teamRoundState);
+
     static GameOutcome checkGameOutcome(int team1TotalScore, int team2TotalScore);
+
+    static Status addRedThreeCardsToMeld
+    (const std::vector<Card>& redThreeCards, BaseMeld* redThreeMeld);
 
 private:
     // Helper to get the minimum initial meld points based on score

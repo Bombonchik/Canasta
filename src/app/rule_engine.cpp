@@ -42,15 +42,12 @@ std::expected<int, std::string> RuleEngine::validateRankMeldInitializationPropos
 }
 
 Status RuleEngine::validateBlackThreeMeldInitializationProposal(
-const BlackThreeMeldProposal& blackThreeProposal, const TeamRoundState& teamRoundState,
-std::size_t cardsPotentiallyLeftInHandCount) {
+const BlackThreeMeldProposal& blackThreeProposal, const TeamRoundState& teamRoundState) {
     const auto blackThreeMeld = teamRoundState.getBlackThreeMeld();
     assert(blackThreeMeld && "Black Three meld is null");
     auto status = blackThreeMeld->checkInitialization(blackThreeProposal.cards);
     if (!status.has_value())
         return std::unexpected(status.error());
-    if (cardsPotentiallyLeftInHandCount > 1)
-        return std::unexpected("You are not allowed to create a Black Three meld with more than 1 card left in hand");
     return {}; // Successss
 }
 
@@ -104,6 +101,13 @@ std::expected<MeldSuggestion, std::string> RuleEngine::suggestMeld(const std::ve
     return std::unexpected{
         "No natural cards present; cannot form a rank-based meld"
     };
+}
+
+bool RuleEngine::canGoingOut(std::size_t cardsPotentiallyLeftInHandCount, const TeamRoundState& teamRoundState) {
+    // Check if the player can go out
+    
+    const auto canastaCount = RuleEngine::getCanastaCount(teamRoundState.getMelds());
+    return cardsPotentiallyLeftInHandCount <= 1 && canastaCount >= MIN_CANASTAS_TO_GO_OUT;
 }
 
 template <Rank R>
@@ -193,7 +197,7 @@ std::expected<MeldCommitment, std::string> RuleEngine::checkTakingDiscardPile(
                                 bool isPileFrozen) {
     bool isFrozen = isPileFrozen;
     // Check if the discard pile is frozen
-    if (!teamRoundState.hasMadeInitialMeld())
+    if (!teamRoundState.hasMadeInitialRankMeld())
         isFrozen = true; // Discard pile is frozen if no initial meld
     Rank topDiscardCardRank = topDiscardCard.getRank();
     bool hasCardsWithRank = checkIfHandHasCardsWithRank(playerHand, topDiscardCardRank, INITIALIZE_COMMITMENT_COUNT - 1);
@@ -246,4 +250,20 @@ GameOutcome RuleEngine::checkGameOutcome(int team1TotalScore, int team2TotalScor
     // Exactly one team has reached it
     if (team1TotalScore >= WINNING_SCORE) return GameOutcome::Team1Wins;
     else                             return GameOutcome::Team2Wins;
+}
+
+Status RuleEngine::addRedThreeCardsToMeld
+(const std::vector<Card>& redThreeCards, BaseMeld* redThreeMeld) {
+    if (redThreeMeld->isInitialized()) {
+        auto status = redThreeMeld->checkCardsAddition(redThreeCards);
+        if (!status.has_value())
+            return std::unexpected(status.error());
+            redThreeMeld->addCards(redThreeCards);
+        return {};
+    }
+    auto status = redThreeMeld->checkInitialization(redThreeCards);
+    if (!status.has_value())
+        return std::unexpected(status.error());
+        redThreeMeld->initialize(redThreeCards);
+    return {};
 }
