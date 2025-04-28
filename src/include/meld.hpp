@@ -8,6 +8,7 @@
 #include <vector>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/polymorphic.hpp>
+#include <cereal/types/memory.hpp>
 #include <cereal/access.hpp>
 #include <cassert>
 #include <optional>
@@ -172,6 +173,32 @@ CEREAL_REGISTER_TYPE(RedThreeMeld)
 CEREAL_REGISTER_TYPE(BlackThreeMeld)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, RedThreeMeld)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, BlackThreeMeld)
+
+// Register specific instantiations of Meld<R>
+CEREAL_REGISTER_TYPE(Meld<Rank::Four>)
+CEREAL_REGISTER_TYPE(Meld<Rank::Five>)
+CEREAL_REGISTER_TYPE(Meld<Rank::Six>)
+CEREAL_REGISTER_TYPE(Meld<Rank::Seven>)
+CEREAL_REGISTER_TYPE(Meld<Rank::Eight>)
+CEREAL_REGISTER_TYPE(Meld<Rank::Nine>)
+CEREAL_REGISTER_TYPE(Meld<Rank::Ten>)
+CEREAL_REGISTER_TYPE(Meld<Rank::Jack>)
+CEREAL_REGISTER_TYPE(Meld<Rank::Queen>)
+CEREAL_REGISTER_TYPE(Meld<Rank::King>)
+CEREAL_REGISTER_TYPE(Meld<Rank::Ace>)
+
+// Register the polymorphic relationship for each instantiation
+CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Four>)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Five>)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Six>)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Seven>)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Eight>)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Nine>)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Ten>)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Jack>)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Queen>)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::King>)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Ace>)
 
 
 // Implementation of Meld<R>::initialize
