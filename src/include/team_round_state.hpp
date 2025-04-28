@@ -52,6 +52,8 @@ public:
 
     void reset();
 
+    TeamRoundState clone() const;
+
     // Cereal serialization function
     template <class Archive>
     void serialize(Archive& ar) {

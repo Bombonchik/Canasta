@@ -173,5 +173,20 @@ const BaseMeld* TeamRoundState::getRedThreeMeld() const {
     return const_cast<TeamRoundState*>(this)->getRedThreeMeld();
 }
 
+// Clone the TeamRoundState object
+TeamRoundState TeamRoundState::clone() const {
+    TeamRoundState clone;
+    clone.melds.clear();
+    clone.melds.reserve(melds.size());
+    for (const auto& meldPtr : melds) {
+        if (meldPtr) {
+            clone.melds.push_back(meldPtr->clone());
+        } else {
+            clone.melds.push_back(nullptr);
+        }
+    }
+    return clone;
+}
+
 // Note: The Cereal serialization function template is defined inline
 // in the header file (team_round_state.hpp) and does not need a separate implementation here.
