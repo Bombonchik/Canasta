@@ -5,13 +5,12 @@
 #include "team_round_state.hpp"
 #include "score_details.hpp"
 #include "card.hpp"
-#include "server_deck.hpp"
+#include "server/server_deck.hpp"
 #include "meld.hpp" // Include for BaseMeld access
 
 #include <stdexcept>
 #include <algorithm> // For std::find_if
 #include <numeric>   // For std::accumulate
-#include <iostream>  // For potential debug output
 
 // --- Constructor ---
 
@@ -164,7 +163,7 @@ std::map<std::string, ScoreBreakdown> RoundManager::calculateScores() {
 void RoundManager::dealInitialHands() {
     for (auto& player : playersInTurnOrder) {
         player.get().resetHand();
-        auto playerTeamState = getTeamStateForPlayer(player.get());
+        auto & playerTeamState = getTeamStateForPlayer(player.get());
         auto playerHand = player.get().getHand();
         for (std::size_t i = 0; i < INITIAL_HAND_SIZE; ++i) {
             std::vector<Card> redThreeCards;
@@ -192,7 +191,7 @@ void RoundManager::setupTurnManagerForCurrentPlayer() {
     if (roundPhase != RoundPhase::InProgress) return;
 
     auto player = getCurrentPlayer();
-    auto teamState = getTeamStateForPlayer(player);
+    auto & teamState = getTeamStateForPlayer(player);
     bool teamHasInitial = teamState.hasMadeInitialRankMeld();
     int teamScore = getTeamForPlayer(player).getTotalScore();
 
