@@ -8,6 +8,8 @@
 #include <expected> // Using std::expected for status/error
 #include <functional> // For reference_wrapper
 #include <variant>
+#include <random>
+#include <algorithm>
 #include "hand.hpp"
 #include "meld.hpp"
 #include "team_round_state.hpp"
@@ -103,6 +105,9 @@ public:
     static Status addRedThreeCardsToMeld
     (const std::vector<Card>& redThreeCards, BaseMeld* redThreeMeld);
 
+    template<typename T>
+    static std::vector<T> randomRotate(std::vector<T> vec);
+
 private:
     // Helper to get the minimum initial meld points based on score
     static int getMinimumInitialMeldPoints(int teamTotalScore);
@@ -123,5 +128,19 @@ private:
     static Status checkCardsAddition(const std::vector<Card>& cards,
         Rank rank, const TeamRoundState& teamRoundState);
 };
+
+template<typename T>
+std::vector<T> RuleEngine::randomRotate(std::vector<T> vec) {
+    if (vec.empty()) return vec;
+
+    static std::mt19937 rng{std::random_device{}()};
+    std::uniform_int_distribution<std::size_t> dist(0, vec.size() - 1);
+    std::size_t shift = dist(rng);
+
+    std::rotate(vec.begin(),
+                vec.begin() + shift,
+                vec.end());
+    return vec;
+}
 
 #endif // RULE_ENGINE_HPP

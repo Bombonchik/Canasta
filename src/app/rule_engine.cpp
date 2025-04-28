@@ -248,7 +248,7 @@ GameOutcome RuleEngine::checkGameOutcome(int team1TotalScore, int team2TotalScor
     }
 
     // Exactly one team has reached it
-    if (team1TotalScore >= WINNING_SCORE) return GameOutcome::Team1Wins;
+    if (team1TotalScore >= team2TotalScore) return GameOutcome::Team1Wins;
     else                             return GameOutcome::Team2Wins;
 }
 
