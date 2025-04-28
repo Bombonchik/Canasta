@@ -62,6 +62,7 @@ public:
     virtual void revertAddCards() = 0; // Revert the last addCards operation, if applicable
 
     virtual std::vector<Card> getCards() const = 0;
+    virtual std::unique_ptr<BaseMeld> clone() const = 0;
 
     // Correctly templated serialization method
     template <class Archive>
@@ -101,6 +102,7 @@ public:
     void revertAddCards() override;
 
     std::vector<Card> getCards() const override;
+    std::unique_ptr<BaseMeld> clone() const override;
 
     template <class Archive>
     void serialize(Archive& archive) {
@@ -133,6 +135,7 @@ public:
     void revertAddCards() override;
 
     std::vector<Card> getCards() const override;
+    std::unique_ptr<BaseMeld> clone() const override;
 
     template <class Archive>
     void serialize(Archive& archive) {
@@ -160,6 +163,7 @@ public:
     void revertAddCards() override;
 
     std::vector<Card> getCards() const override;
+    std::unique_ptr<BaseMeld> clone() const override;
 
     template <class Archive>
     void serialize(Archive& archive) {
@@ -381,6 +385,12 @@ std::vector<Card> Meld<R>::getCards() const {
     allCards.insert(allCards.end(), wildCards.begin(), wildCards.end());
     allCards.insert(allCards.end(), naturalCards.begin(), naturalCards.end());
     return allCards;
+}
+
+// Implementation of Meld<R>::clone
+template <Rank R>
+std::unique_ptr<BaseMeld> Meld<R>::clone() const {
+    return std::make_unique<Meld<R>>(*this);
 }
 
 

@@ -162,3 +162,11 @@ std::vector<Card> RedThreeMeld::getCards() const {
 std::vector<Card> BlackThreeMeld::getCards() const {
     return blackThreeCards;
 }
+
+std::unique_ptr<BaseMeld> RedThreeMeld::clone() const {
+    return std::make_unique<RedThreeMeld>(*this);
+}
+
+std::unique_ptr<BaseMeld> BlackThreeMeld::clone() const {
+    return std::make_unique<BlackThreeMeld>(*this);
+}
