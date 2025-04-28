@@ -65,8 +65,8 @@ private:
     CardColor color;    // Suit Color (Red or Black)
     CardType type;      // Type (Natural, Wild, RedThree, BlackThree)
     int points;         // Precomputed points for efficiency
-
 public:
+    Card() = default; // for serialization purposes only
     // Constructor
     Card(Rank rank, CardColor color);
 
