@@ -283,5 +283,6 @@ TeamRoundState& RoundManager::getTeamStateForPlayer(Player& player) {
 
 // Const overload
 const TeamRoundState& RoundManager::getTeamStateForPlayer(const Player& player) const {
-    return const_cast<RoundManager*>(this)->getTeamStateForPlayer(player);
+    return const_cast<RoundManager*>(this)
+    ->getTeamStateForPlayer(const_cast<Player&>(player));
 }
