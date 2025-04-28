@@ -37,6 +37,7 @@ add_executable(canasta_server
     app/server/server_main.cpp
     app/server/server_deck.cpp
     app/server/turn_manager.cpp # Added TurnManager source
+    app/server/server_logging.cpp # Added server logging source
     # Removed app/client/client_deck.cpp from here
 )
 

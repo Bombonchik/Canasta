@@ -11,6 +11,7 @@
 #include "asio.hpp"
 #include "cereal/archives/binary.hpp"
 #include <cereal/types/string.hpp>
+#include "server/server_logging.hpp"
 
 #include "game_state.hpp"
 //#include "cereal/cereal.hpp"
@@ -229,9 +230,9 @@ void startServer(ServerData& serverData, int numPlayers) {
 }
 
 
-
-
 int main() {
+    initLogger();
+    spdlog::info("----------Canasta Server is starting----------");
     int numPlayers = 4;
     ServerData serverData;
     serverData.gameState = GameState{0, "Welcome to the game!"};
@@ -241,12 +242,13 @@ int main() {
         launchTerminal(i);
     }
 
-    spdlog::info("Starting the server...");
+    spdlog::info("Starting the network server...");
     startServer(serverData, numPlayers);
 
     // Keep the main thread alive
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+    spdlog::shutdown();
     return 0;
 }
