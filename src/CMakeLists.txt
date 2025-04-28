@@ -13,11 +13,9 @@ find_package(cereal REQUIRED)
 # --- Core Game Logic Library ---
 add_library(canasta_core STATIC
     app/card.cpp
-    app/meld.cpp
-    # Add future .cpp files here:
     app/hand.cpp
+    app/meld.cpp
     app/player.cpp
-    # app/round.cpp
     app/team.cpp
     app/rule_engine.cpp
     app/team_round_state.cpp
@@ -34,11 +32,12 @@ target_link_libraries(canasta_core PUBLIC
 
 # --- Server Executable ---
 add_executable(canasta_server
+    app/server/server_logging.cpp
     app/server/server_main.cpp
     app/server/server_deck.cpp
-    app/server/turn_manager.cpp # Added TurnManager source
-    app/server/server_logging.cpp # Added server logging source
-    # Removed app/client/client_deck.cpp from here
+    app/server/turn_manager.cpp
+    app/server/round_manager.cpp
+    app/server/game_manager.cpp
 )
 
 # Specify include directory for the server
