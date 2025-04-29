@@ -6,7 +6,7 @@
 #include "cereal/archives/binary.hpp"
 #include "player.hpp"           // Includes Hand, Card
 #include "team_round_state.hpp" // Includes Meld, ScoreBreakdown
-#include "client/client_deck.hpp"      // Public view of deck/discard state
+#include "client_deck.hpp"      // Public view of deck/discard state
 #include "rule_engine.hpp"      // For GameOutcome
 #include <vector>
 #include <optional>
@@ -26,7 +26,7 @@ struct GameState {
 
 struct PlayerPublicInfo {
     std::string name;
-    size_t handCardCount;
+    std::size_t handCardCount;
     bool isCurrentTurn; // Flag if this player is the current one
 
     template <class Archive>

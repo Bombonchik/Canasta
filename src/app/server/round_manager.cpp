@@ -122,7 +122,7 @@ bool RoundManager::isRoundOver() const {
     return roundPhase == RoundPhase::Finished;
 }
 
-std::map<std::string, ScoreBreakdown> RoundManager::calculateScores() {
+std::map<std::string, ScoreBreakdown> RoundManager::calculateScores() const {
     if (!isRoundOver()) {
         throw std::logic_error("Cannot calculate scores before round is finished.");
     }
@@ -285,4 +285,34 @@ TeamRoundState& RoundManager::getTeamStateForPlayer(Player& player) {
 const TeamRoundState& RoundManager::getTeamStateForPlayer(const Player& player) const {
     return const_cast<RoundManager*>(this)
     ->getTeamStateForPlayer(const_cast<Player&>(player));
+}
+
+ClientDeck RoundManager::getClientDeck() const {
+    return ClientDeck{
+        serverDeck.mainDeckSize(),
+        serverDeck.getTopDiscard(),
+        serverDeck.discardPileSize(),
+        serverDeck.isFrozen()
+    };
+}
+
+std::vector<PlayerPublicInfo> RoundManager::getAllPlayersPublicInfo() const {
+    std::vector<PlayerPublicInfo> playerInfos;
+    for (const auto& playerRef : playersInTurnOrder) {
+        const Player& player = playerRef.get();
+        playerInfos.push_back({
+            player.getName(),
+            player.getHand().cardCount(),
+            player.getName() == getCurrentPlayer().getName()
+        });
+    }
+    return playerInfos;
+}
+
+TeamRoundState RoundManager::getTeam1RoundState() const {
+    return team1State.clone();
+}
+
+TeamRoundState RoundManager::getTeam2RoundState() const {
+    return team2State.clone();
 }

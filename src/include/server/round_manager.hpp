@@ -16,6 +16,8 @@
 #include "turn_manager.hpp" // Includes TurnActionResult, MeldRequest etc.
 #include "score_details.hpp"
 #include "rule_engine.hpp" // For GameOutcome
+#include "client_deck.hpp"
+#include "game_state.hpp" // For PlayerPublicInfo
 
 
 
@@ -97,7 +99,14 @@ public:
      * Should only be called when isRoundOver() is true.
      * @return A map where the key is the team name (or ID) and the value is the ScoreBreakdown.
      */
-    std::map<std::string, ScoreBreakdown> calculateScores();
+    std::map<std::string, ScoreBreakdown> calculateScores() const;
+
+    ClientDeck getClientDeck() const;
+
+    std::vector<PlayerPublicInfo> getAllPlayersPublicInfo() const;
+
+    TeamRoundState getTeam1RoundState() const;
+    TeamRoundState getTeam2RoundState() const;
 
 private:
 
