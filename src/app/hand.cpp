@@ -64,7 +64,7 @@ bool Hand::isEmpty() const {
 }
 
 // Get the number of cards in the hand.
-size_t Hand::cardCount() const {
+std::size_t Hand::cardCount() const {
     return cards.size();
 }
 

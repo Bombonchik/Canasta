@@ -161,7 +161,7 @@ TurnActionResult TurnManager::handleMelds(const std::vector<MeldRequest>& meldRe
     if (canGoingOut && cardsPotentiallyLeftInHandCount == 0) // immediate going out
         return {
             TurnActionStatus::Success_WentOut,
-            "You have gone out successfully."
+            "Player has gone out successfully."
         };
     
     return {
@@ -205,7 +205,7 @@ TurnActionResult TurnManager::handleDiscard(const Card& cardToDiscard) {
     if (canGoingOut)
         return {
             TurnActionStatus::Success_WentOut,
-            "You have gone out successfully."
+            "Player has gone out successfully."
         };
     
     return {

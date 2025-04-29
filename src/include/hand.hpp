@@ -34,7 +34,7 @@ public:
     bool isEmpty() const;
 
     // Get the number of cards in the hand
-    size_t cardCount() const;
+    std::size_t cardCount() const;
 
     // Reset the hand
     void reset();

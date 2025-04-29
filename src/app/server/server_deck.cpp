@@ -151,12 +151,12 @@ bool ServerDeck::isDiscardPileEmpty() const {
 }
 
 // Get the number of cards remaining in the main deck.
-size_t ServerDeck::mainDeckSize() const {
+std::size_t ServerDeck::mainDeckSize() const {
     return mainDeck.size();
 }
 
 // Get the number of cards in the discard pile.
-size_t ServerDeck::discardPileSize() const {
+std::size_t ServerDeck::discardPileSize() const {
     return discardPile.size();
 }
 

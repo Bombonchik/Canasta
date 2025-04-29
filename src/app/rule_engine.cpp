@@ -126,7 +126,7 @@ RuleEngine::createAndInitializeRankMeld(const std::vector<Card>& cards, Rank ran
 {
     constexpr int FIRST_RANK = static_cast<int>(Rank::Four);
     constexpr int LAST_RANK  = static_cast<int>(Rank::Ace);
-    constexpr size_t COUNT   = LAST_RANK - FIRST_RANK + 1;
+    constexpr std::size_t COUNT   = LAST_RANK - FIRST_RANK + 1;
 
     // Once we find the matching R, we store its success/failure here:
     std::optional<std::expected<std::unique_ptr<BaseMeld>, std::string>>
