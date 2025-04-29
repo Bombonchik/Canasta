@@ -69,12 +69,15 @@ public:
     const Team& getTeam2() const;
     const std::vector<Player>& getAllPlayers() const;
 
+    const Player& getPlayerByName(const std::string& name) const;
+
+    void handlePlayerDisconnect(const std::string& playerName);
 
 private:
     enum class GamePhase {
         NotStarted,
         RoundInProgress,
-        BetweenRounds, // Waiting to start the next round
+        //BetweenRounds, // Waiting to start the next round
         Finished
     };
 

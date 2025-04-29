@@ -80,20 +80,14 @@ void GameManager::advanceGameState() {
 
             // If the game didn't end, prepare for the next round
             if (!isGameOver()) {
-                gamePhase = GamePhase::BetweenRounds;
+                //gamePhase = GamePhase::BetweenRounds;
                 std::cout << "Game continues. Ready to start next round." << std::endl;
                 // Optionally add a delay or wait for user input here
                 startNextRound();
             }
         }
         // If round is not over, do nothing - wait for player actions via RoundManager
-    } else if (gamePhase == GamePhase::BetweenRounds) {
-         // This state might be used if there's a manual step/delay needed
-         // between rounds. If not, handleRoundCompletion could directly
-         // call startNextRound if the game isn't over.
-         // For now, let's assume we transition immediately.
-         // startNextRound(); // Already called after handleRoundCompletion if needed
-    }
+    } 
     // No advancement needed if NotStarted or Finished
 }
 
@@ -108,6 +102,11 @@ const Team& GameManager::getTeam2() const {
 
 const std::vector<Player>& GameManager::getAllPlayers() const {
     return allPlayers;
+}
+
+void GameManager::handlePlayerDisconnect(const std::string& playerName) {
+    // in current implementation, we just log the disconnection and kill the game
+    spdlog::info("Player {} disconnected. Ending game.", playerName);
 }
 
 
@@ -183,7 +182,7 @@ void GameManager::handleRoundCompletion() {
     finalOutcome = outcome; // Store the outcome
 
     if (outcome == GameOutcome::Continue) {
-        gamePhase = GamePhase::BetweenRounds; // Ready for next round
+        //gamePhase = GamePhase::BetweenRounds; // Ready for next round
     } else {
         gamePhase = GamePhase::Finished; // Game over
         auto message = (outcome == GameOutcome::Draw) ? "It's a draw!" :
@@ -193,4 +192,15 @@ void GameManager::handleRoundCompletion() {
 
     // Round is finished, release the manager
     currentRound.reset();
+}
+
+const Player& GameManager::getPlayerByName(const std::string& name) const {
+    auto it = std::find_if(allPlayers.begin(), allPlayers.end(),
+        [&name](const Player& player) { return player.getName() == name; });
+
+    if (it != allPlayers.end()) {
+        return *it;
+    } else {
+        throw std::invalid_argument("Player with name " + name + " not found.");
+    }
 }
