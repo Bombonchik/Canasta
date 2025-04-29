@@ -5,6 +5,8 @@
 #include <memory>
 #include <optional>
 #include <string> // For error messages potentially in results
+#include <cereal/types/vector.hpp>   // Needed for vector serialization
+#include <cereal/types/optional.hpp> // Needed for optional serialization
 #include "card.hpp"
 #include "hand.hpp"
 #include "player.hpp"
@@ -33,9 +35,17 @@ struct TurnActionResult {
 
 struct MeldRequest {
     std::vector<Card> cards;
-    std::optional<Rank> addToRank; 
+    std::optional<Rank> addToRank;
       // - nullopt = “I want to initialize a NEW meld”
       // - Rank    = “I want to add these cards to the existing meld of rank addToRank”
+
+    // Add Cereal serialize method
+    template <class Archive>
+    void serialize(Archive& ar) {
+        // Need to serialize Rank enum as underlying type (e.g., int)
+        // Assuming Rank has a Cereal serialization function defined elsewhere
+        ar(CEREAL_NVP(cards), CEREAL_NVP(addToRank));
+    }
 };
 
 /**
