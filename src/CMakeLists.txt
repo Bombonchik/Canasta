@@ -19,6 +19,7 @@ add_library(canasta_core STATIC
     app/team.cpp
     app/rule_engine.cpp
     app/team_round_state.cpp
+    app/client_deck.cpp
 )
 
 # Specify include directory for the core library
@@ -38,6 +39,7 @@ add_executable(canasta_server
     app/server/turn_manager.cpp
     app/server/round_manager.cpp
     app/server/game_manager.cpp
+    app/server/server_network.cpp
 )
 
 # Specify include directory for the server
@@ -55,7 +57,6 @@ target_link_libraries(canasta_server PRIVATE
 # --- Client Executable ---
 add_executable(canasta_client
     app/client/client_main.cpp
-    app/client/client_deck.cpp
 )
 
 # Specify include directory for the client
