@@ -1,6 +1,5 @@
 #include <spdlog/spdlog.h>
 #include "server/game_manager.hpp"
-#include "server/round_manager.hpp"
 #include "player.hpp"
 #include "team.hpp"
 #include "rule_engine.hpp"
@@ -12,8 +11,8 @@
 
 // --- Constructor ---
 
-GameManager::GameManager(const std::vector<std::string>& playerNames)
-    :   playersCount(playerNames.size()),
+GameManager::GameManager(std::size_t playersCount)
+    :   playersCount(playersCount),
         team1("Team 1"), // Initialize teams
         team2("Team 2"),
         gamePhase(GamePhase::NotStarted),
@@ -22,10 +21,34 @@ GameManager::GameManager(const std::vector<std::string>& playerNames)
     if (playersCount != 4 && playersCount != 2) {
         throw std::invalid_argument("GameManager currently requires 2 or 4 players.");
     }
-    setupTeams(playerNames);
 }
 
 // --- Public Methods ---
+
+bool GameManager::allPlayersJoined() const {
+    return playersCount == playerNames.size();
+}
+
+Status GameManager::addPlayer(const std::string& playerName) {
+    if (gamePhase != GamePhase::NotStarted) {
+        return std::unexpected("Game has already started or is finished.");
+    }
+    if (std::find(playerNames.begin(), playerNames.end(), playerName) != playerNames.end()) {
+        return std::unexpected("Player name already exists.");
+    }
+    if (allPlayersJoined()) {
+        return std::unexpected("Game is full. Cannot add more players.");
+    }
+
+    playerNames.push_back(playerName);
+    spdlog::info("Player {} added. Total players: {}", playerName, playerNames.size());
+
+    // If we have enough players, set up teams
+    if (allPlayersJoined()) {
+        setupTeams();
+    }
+    return {};
+}
 
 void GameManager::startGame() {
     if (gamePhase != GamePhase::NotStarted) {
@@ -71,23 +94,20 @@ const RoundManager* GameManager::getCurrentRoundManager() const {
 void GameManager::advanceGameState() {
     if (gamePhase == GamePhase::RoundInProgress && currentRound) {
         // Check if the current round has naturally concluded
-        // Note: RoundManager internally handles setting its state to Finished
-        // based on game rules (player out, deck empty).
-        // We just need to check that state here.
         if (currentRound->isRoundOver()) {
-            std::cout << "Round finished. Handling completion..." << std::endl;
+            spdlog::info("Round is over. Handling round completion...");
             handleRoundCompletion();
-
-            // If the game didn't end, prepare for the next round
-            if (!isGameOver()) {
-                //gamePhase = GamePhase::BetweenRounds;
-                std::cout << "Game continues. Ready to start next round." << std::endl;
-                // Optionally add a delay or wait for user input here
-                startNextRound();
-            }
         }
         // If round is not over, do nothing - wait for player actions via RoundManager
-    } 
+    } else if (gamePhase == GamePhase::BetweenRounds) {
+        // If game is in between rounds, we can start the next round
+        if (!isGameOver()) {
+            //gamePhase = GamePhase::BetweenRounds;
+            spdlog::info("Game continues. Ready to start next round.");
+            // Optionally add a delay or wait for user input here
+            startNextRound();
+        }
+    }
     // No advancement needed if NotStarted or Finished
 }
 
@@ -112,7 +132,7 @@ void GameManager::handlePlayerDisconnect(const std::string& playerName) {
 
 // --- Private Helpers ---
 
-void GameManager::setupTeams(const std::vector<std::string>& playerNames) {
+void GameManager::setupTeams() {
     allPlayers.clear();
     // Create Player objects - GameManager owns them
     for (const auto& name : playerNames) {
@@ -140,6 +160,7 @@ void GameManager::startNextRound() {
     }
     playerRefs = RuleEngine::randomRotate(playerRefs);
 
+    currentRound.reset(); // Reset any existing round manager
     currentRound = std::make_unique<RoundManager>(
         playerRefs,
         std::cref(team1), // Pass const reference to Team
@@ -162,8 +183,8 @@ void GameManager::handleRoundCompletion() {
     // Update total scores in Team objects
     // Need to handle potential key errors if team names don't match exactly
     try {
-        int team1RoundScore = scores.at(team1.getName()).calculateTotal();
-        int team2RoundScore = scores.at(team2.getName()).calculateTotal();
+        int team1RoundScore = scores[team1.getName()].calculateTotal();
+        int team2RoundScore = scores[team2.getName()].calculateTotal();
         team1.addToTotalScore(team1RoundScore);
         team2.addToTotalScore(team2RoundScore);
         spdlog::info("{} round score: {}, total: {}", team1.getName(), team1RoundScore, team1.getTotalScore());
@@ -182,16 +203,13 @@ void GameManager::handleRoundCompletion() {
     finalOutcome = outcome; // Store the outcome
 
     if (outcome == GameOutcome::Continue) {
-        //gamePhase = GamePhase::BetweenRounds; // Ready for next round
+        gamePhase = GamePhase::BetweenRounds; // Ready for next round
     } else {
         gamePhase = GamePhase::Finished; // Game over
         auto message = (outcome == GameOutcome::Draw) ? "It's a draw!" :
             (outcome == GameOutcome::Team1Wins) ? "Team 1 wins!" : "Team 2 wins!";
         spdlog::info("Game over! Outcome: {}", message);
     }
-
-    // Round is finished, release the manager
-    currentRound.reset();
 }
 
 const Player& GameManager::getPlayerByName(const std::string& name) const {

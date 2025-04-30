@@ -10,7 +10,7 @@
 
 #include "player.hpp"
 #include "team.hpp"
-#include "round_manager.hpp" // Manages a single round
+#include "server/round_manager.hpp" // Manages a single round
 #include "rule_engine.hpp"   // For GameOutcome and WINNING_SCORE
 
 
@@ -24,7 +24,11 @@ public:
      * @brief Constructs a GameManager.
      * @param playerNames
      */
-    explicit GameManager(const std::vector<std::string>& playerNames);
+    explicit GameManager(std::size_t playersCount);
+
+    bool allPlayersJoined() const;
+
+    Status addPlayer(const std::string& playerName);
 
     /**
      * @brief Starts the game, dealing the first round.
@@ -77,7 +81,7 @@ private:
     enum class GamePhase {
         NotStarted,
         RoundInProgress,
-        //BetweenRounds, // Waiting to start the next round
+        BetweenRounds, // Waiting to start the next round
         Finished
     };
 
@@ -86,12 +90,14 @@ private:
     std::size_t playersCount;
     Team team1;
     Team team2;
-    std::unique_ptr<RoundManager> currentRound;
 
     // --- Game State ---
     GamePhase gamePhase;
     // Use std::optional for outcome until game is finished
     std::optional<GameOutcome> finalOutcome;
+
+    std::vector<std::string> playerNames; // Names of players in the game
+    std::unique_ptr<RoundManager> currentRound;
 
     // --- Private Helpers ---
 
@@ -99,7 +105,7 @@ private:
      * @brief Sets up players and teams based on initial names.
      * @param playerNames Names provided to the constructor.
      */
-    void setupTeams(const std::vector<std::string>& playerNames);
+    void setupTeams();
 
     /**
      * @brief Starts a new round of play.
