@@ -65,10 +65,10 @@ public:
     bool isDiscardPileEmpty() const;
 
     // Get the number of cards remaining in the main deck.
-    size_t mainDeckSize() const;
+    std::size_t mainDeckSize() const;
 
     // Get the number of cards in the discard pile.
-    size_t discardPileSize() const;
+    std::size_t discardPileSize() const;
 
     // Check if the discard pile is frozen.
     bool isFrozen() const;

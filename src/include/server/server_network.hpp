@@ -86,10 +86,6 @@ public:
 
 private:
     friend class Session; // Allow Session to access private members
-    /**
-     * @brief Callback function for when a new connection is accepted.
-     */
-    void handleAccept(SessionPtr newSession, const asio::error_code& error);
 
     /**
      * @brief Registers a new session and associates it with a player name.

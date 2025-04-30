@@ -11,7 +11,7 @@
 #include "hand.hpp"
 #include "player.hpp"
 #include "team_round_state.hpp"
-#include "server_deck.hpp"
+#include "server/server_deck.hpp"
 #include "rule_engine.hpp" // For MeldProposal definition and static methods
 
 /**
