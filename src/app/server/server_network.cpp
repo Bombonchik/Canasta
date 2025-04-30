@@ -4,6 +4,7 @@
 #include "game_state.hpp"   // ClientGameState
 #include "card.hpp"
 #include "player.hpp"       // Needed for assembling state
+#include "make_state.hpp"
 #include "spdlog/spdlog.h"
 #include <stdexcept>
 #include <vector>
@@ -307,22 +308,35 @@ void ServerNetwork::startAccept() {
 
 Status ServerNetwork::join(SessionPtr session, const std::string& playerName) {
     // This should ideally run on the main io_context thread or be protected
-    std::lock_guard<std::mutex> lock(sessionsMutex);
-    if (sessions.count(playerName) > 0) {
-        spdlog::error("Player name '{}' already taken.", playerName);
-        auto errorMsg = serializeWithHeader(ServerMessageType::LoginFailure, std::string("Name already taken."));
-        session->deliver(errorMsg);
-        return std::unexpected("Name already taken.");
+    {
+        std::lock_guard<std::mutex> lock(sessionsMutex);
+        if (sessions.count(playerName) > 0) {
+            spdlog::error("Player name '{}' already taken.", playerName);
+            auto errorMsg = serializeWithHeader(ServerMessageType::LoginFailure, std::string("Name already taken."));
+            session->deliver(errorMsg);
+            return std::unexpected("Name already taken.");
+        }
+        if (gameManager.allPlayersJoined()) {
+            spdlog::error("Game is full. Cannot join.");
+            auto errorMsg = serializeWithHeader(ServerMessageType::LoginFailure, std::string("Game is full."));
+            session->deliver(errorMsg);
+            return std::unexpected("Game is full.");
+        }
+        sessions[playerName] = session;
     }
-    if (sessions.size() >= gameManager.getAllPlayers().size()) {
-        spdlog::error("Game is full. Cannot join.");
-        auto errorMsg = serializeWithHeader(ServerMessageType::LoginFailure, std::string("Game is full."));
-        session->deliver(errorMsg);
-        return std::unexpected("Game is full.");
-    }
-    sessions[playerName] = session;
-    // Maybe trigger initial game state send here?
-    // Or wait for GameManager to signal readiness?
+    asio::post(gameStrand, [this, playerName = std::move(playerName)]() mutable {
+        auto status = gameManager.addPlayer(playerName);
+        if (!status.has_value()) {
+            // this should never happen—names/counts already checked above—but if it does we log an error.
+            spdlog::error("addPlayer failed on strand: {}", status.error());
+        }
+
+        // once everyone has joined, we can start the game:
+        if (gameManager.allPlayersJoined()) {
+            gameManager.startGame();
+            broadcastGameState("Game started!");
+        }
+    });
     return {}; // Indicate success
 }
 
@@ -370,51 +384,50 @@ void ServerNetwork::broadcastGameState(const std::string& lastActionMsg) {
      // This function MUST run on the gameStrand
     assert(gameStrand.running_in_this_thread());
 
-    // ToDo: call some function from gameManager to manage stuff
-    //if (gameManager.isGameOver()) {
-         // Send final state? Or maybe a specific "Game Over" message?
-         // For now, just send the final state once.
-    //}
+    bool broadcastNewRound = false;
+    if (auto* roundManager = gameManager.getCurrentRoundManager()) {
+        if (roundManager->isRoundOver()) {
+            spdlog::info("Round is over. Advancing game state.");
+            broadcastNewRound = true;
+            gameManager.advanceGameState(); // Advance game state
+        }
+    }
 
-     // Assemble and send state to each connected player
-    const auto roundManager = gameManager.getCurrentRoundManager();
-    const auto& players = gameManager.getAllPlayers(); // Get player list once
-
-    for (const auto& player : players) {
-        const std::string& targetPlayerName = player.getName();
-
-        // Check if this player is actually connected
-        SessionPtr targetSession;
-        { // Scope for lock
-            std::lock_guard<std::mutex> lock(sessionsMutex);
-            auto it = sessions.find(targetPlayerName);
-            if (it != sessions.end()) {
-                targetSession = it->second;
+    if (const auto* roundManager = gameManager.getCurrentRoundManager()) {
+        for (const auto& player : gameManager.getAllPlayers()) {
+            const std::string& targetPlayerName = player.getName();
+    
+            // Check if this player is actually connected
+            SessionPtr targetSession;
+            { // Scope for lock
+                std::lock_guard<std::mutex> lock(sessionsMutex);
+                auto it = sessions.find(targetPlayerName);
+                if (it != sessions.end()) {
+                    targetSession = it->second;
+                }
+            } // Unlock mutex
+    
+            if (!targetSession) {
+                spdlog::warn("Warning: Attempted to send game state to disconnected player: {}", targetPlayerName);
+                continue; // Skip if player is not connected
             }
-        } // Unlock mutex
-
-        if (targetSession) { // Only send if player is connected
+            // Only send if player is connected
             try {
-                // Placeholder state construction:
-                ClientGameState state;
-                state.yourPlayerData = player; // Copy player data (includes hand)
-                state.allPlayersPublicInfo = roundManager->getAllPlayersPublicInfo();
-                state.team1State = roundManager->getTeam1RoundState();
-                state.team2State = roundManager->getTeam2RoundState();
-                state.deckState = roundManager->getClientDeck();
-                state.team1TotalScore = gameManager.getTeam1().getTotalScore();
-                state.team2TotalScore = gameManager.getTeam2().getTotalScore();
-                state.isGameOver = gameManager.isGameOver();
-                state.gameOutcome = gameManager.getGameOutcome();
-                state.lastActionDescription = lastActionMsg; // Use message passed in
-
-                auto message = serializeWithHeader(ServerMessageType::GameStateUpdate, state);
+                ClientGameState clientGameState = makeClientGameState(
+                    player, *roundManager, gameManager, lastActionMsg
+                );
+                auto message = serializeWithHeader(ServerMessageType::GameStateUpdate, clientGameState);
                 targetSession->deliver(message); // Deliver uses session's post, safe
-
+    
             } catch (const std::exception& e) {
                 spdlog::error("Error assembling or serializing game state for {}: {}", targetPlayerName, e.what());
             }
         }
+    }
+
+    if (broadcastNewRound) {
+        gameManager.advanceGameState();
+        broadcastGameState("New round started!");
     }
 }
 
