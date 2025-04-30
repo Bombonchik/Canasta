@@ -4,7 +4,7 @@
 #include "game_state.hpp"   // ClientGameState
 #include "card.hpp"
 #include "player.hpp"       // Needed for assembling state
-#include "make_state.hpp"
+#include "server/make_state.hpp"
 #include "spdlog/spdlog.h"
 #include <stdexcept>
 #include <vector>
