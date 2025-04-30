@@ -4,10 +4,12 @@
 #include <string>
 #include "cereal/cereal.hpp"
 #include "cereal/archives/binary.hpp"
+#include "player_public_info.hpp"
 #include "player.hpp"           // Includes Hand, Card
 #include "team_round_state.hpp" // Includes Meld, ScoreBreakdown
 #include "client_deck.hpp"      // Public view of deck/discard state
 #include "rule_engine.hpp"      // For GameOutcome
+#include "score_details.hpp"     // For ScoreBreakdown
 #include <vector>
 #include <optional>
 #include <cereal/types/vector.hpp>
@@ -24,34 +26,26 @@ struct GameState {
     }
 };
 
-struct PlayerPublicInfo {
-    std::string name;
-    std::size_t handCardCount;
-    bool isCurrentTurn; // Flag if this player is the current one
-
-    template <class Archive>
-    void serialize(Archive& ar) {
-        ar(CEREAL_NVP(name), CEREAL_NVP(handCardCount), CEREAL_NVP(isCurrentTurn));
-    }
-};
-
 struct ClientGameState {
+    // Deck/Discard Public State
+    ClientDeck deckState; // Contains top discard, counts, frozen status
     // Personalized Data
-    Player yourPlayerData; // Full Player object (including Hand) for the receiving client
+    Player myPlayerData; // Full Player object (including Hand) for the receiving client
 
     // Public Data for Others
     std::vector<PlayerPublicInfo> allPlayersPublicInfo; // Includes self and others
 
     // Team States (Round Specific)
-    TeamRoundState team1State; // Full round state for Team 1's melds
-    TeamRoundState team2State; // Full round state for Team 2's melds
-
-    // Deck/Discard Public State
-    ClientDeck deckState; // Contains top discard, counts, frozen status
+    TeamRoundState myTeamState; // Full round state for player's team
+    TeamRoundState opponentTeamState; // Full round state for opponent's team
 
     // Overall Game Scores
-    int team1TotalScore;
-    int team2TotalScore;
+    int myTeamTotalScore;
+    int opponentTeamTotalScore;
+
+    bool isRoundOver = false; // Flag for round end
+    std::optional<ScoreBreakdown> myTeamScoreBreakdown; // Optional, only in round over
+    std::optional<ScoreBreakdown> opponentTeamScoreBreakdown; // Optional, only in round over
 
     // Game Status
     bool isGameOver = false;
@@ -65,10 +59,12 @@ struct ClientGameState {
 
     template <class Archive>
     void serialize(Archive& ar) {
-        ar(CEREAL_NVP(yourPlayerData), CEREAL_NVP(allPlayersPublicInfo),
-            CEREAL_NVP(team1State), CEREAL_NVP(team2State),
-            CEREAL_NVP(deckState),
-            CEREAL_NVP(team1TotalScore), CEREAL_NVP(team2TotalScore),
+        ar(CEREAL_NVP(deckState), CEREAL_NVP(myPlayerData),
+            CEREAL_NVP(allPlayersPublicInfo), 
+            CEREAL_NVP(myTeamState), CEREAL_NVP(opponentTeamState),
+            CEREAL_NVP(myTeamTotalScore), CEREAL_NVP(opponentTeamTotalScore),
+            CEREAL_NVP(isRoundOver),
+            CEREAL_NVP(myTeamScoreBreakdown), CEREAL_NVP(opponentTeamScoreBreakdown),
             CEREAL_NVP(isGameOver), CEREAL_NVP(gameOutcome),
             CEREAL_NVP(lastActionDescription));
     }
