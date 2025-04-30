@@ -11,14 +11,13 @@
 #include "player.hpp"
 #include "team.hpp"
 #include "team_round_state.hpp"
-#include "server_deck.hpp"
+#include "server/server_deck.hpp"
 #include "card.hpp"
 #include "turn_manager.hpp" // Includes TurnActionResult, MeldRequest etc.
 #include "score_details.hpp"
 #include "rule_engine.hpp" // For GameOutcome
 #include "client_deck.hpp"
-#include "game_state.hpp" // For PlayerPublicInfo
-
+#include "player_public_info.hpp"
 
 
 /**
@@ -105,8 +104,7 @@ public:
 
     std::vector<PlayerPublicInfo> getAllPlayersPublicInfo() const;
 
-    TeamRoundState getTeam1RoundState() const;
-    TeamRoundState getTeam2RoundState() const;
+    TeamRoundState getTeamStateForTeam(const Team& team) const;
 
 private:
 
@@ -163,7 +161,6 @@ private:
      */
     TeamRoundState& getTeamStateForPlayer(Player& player);
     const TeamRoundState& getTeamStateForPlayer(const Player& player) const; // Const overload
-
 };
 
 #endif // ROUND_MANAGER_HPP

@@ -5,7 +5,6 @@
 #include "team_round_state.hpp"
 #include "score_details.hpp"
 #include "card.hpp"
-#include "server/server_deck.hpp"
 #include "meld.hpp" // Include for BaseMeld access
 
 #include <stdexcept>
@@ -309,10 +308,11 @@ std::vector<PlayerPublicInfo> RoundManager::getAllPlayersPublicInfo() const {
     return playerInfos;
 }
 
-TeamRoundState RoundManager::getTeam1RoundState() const {
-    return team1State.clone();
-}
-
-TeamRoundState RoundManager::getTeam2RoundState() const {
-    return team2State.clone();
+TeamRoundState RoundManager::getTeamStateForTeam(const Team& team) const {
+    if (team.getName() == team1.get().getName()) {
+        return team1State.clone();
+    } else if (team.getName() == team2.get().getName()) {
+        return team2State.clone();
+    }
+    throw std::logic_error("Team " + team.getName() + " not found in RoundManager.");
 }
