@@ -9,7 +9,8 @@ inline ClientGameState makeClientGameState(
     const Player& player,
     const RoundManager& roundManager,
     const GameManager& gameManager,
-    std::string actionDescription
+    std::string actionDescription,
+    std::optional<TurnActionStatus> status = std::nullopt
 ) {
     ClientGameState s;
     s.deckState = roundManager.getClientDeck();
@@ -34,6 +35,7 @@ inline ClientGameState makeClientGameState(
         s.gameOutcome = gameManager.getGameOutcome();
     }
     s.lastActionDescription = actionDescription;
+    s.status = status;
     return s;
 }
 

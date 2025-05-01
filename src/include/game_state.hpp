@@ -53,6 +53,7 @@ struct ClientGameState {
 
     // Context
     std::string lastActionDescription; // Description of the last successful action
+    std::optional<TurnActionStatus> status;
 
     // Default constructor might be needed for serialization/initialization
     ClientGameState() = default;
