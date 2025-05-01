@@ -2,69 +2,11 @@
 #include "server/game_manager.hpp"
 #include "server/turn_manager.hpp" // TurnActionResult, MeldRequest
 #include "game_state.hpp"   // ClientGameState
-#include "card.hpp"
 #include "player.hpp"       // Needed for assembling state
 #include "server/make_state.hpp"
 #include "spdlog/spdlog.h"
 #include <stdexcept>
 #include <vector>
-#include <cereal/archives/binary.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/optional.hpp>
-// Include other necessary cereal types
-
-enum class ServerMessageType : uint8_t {
-    GameStateUpdate, // Contains ClientGameState
-    ActionError,     // Contains string message
-    LoginSuccess,    // Acknowledge successful login
-    LoginFailure,    // E.g., name taken, game full
-    // Add others
-};
-
-
-// Helper function to serialize data with size header
-template <typename T>
-std::vector<char> serializeWithHeader(ServerMessageType msgType, const T& data) {
-    std::ostringstream os(std::ios::binary);
-    { // Scope for the archive
-        cereal::BinaryOutputArchive archive(os);
-        archive(msgType); // Write message type first
-        archive(data);    // Write the actual data payload
-    } // Archive goes out of scope, flushes data to os
-
-    std::string serializedData = os.str();
-    std::uint32_t dataSize = static_cast<std::uint32_t>(serializedData.size());
-    std::uint32_t networkDataSize = asio::detail::socket_ops::host_to_network_long(dataSize); // Ensure network byte order
-
-    std::vector<char> messageBuffer;
-    messageBuffer.resize(sizeof(networkDataSize) + dataSize);
-
-    // Copy size header
-    std::memcpy(messageBuffer.data(), &networkDataSize, sizeof(networkDataSize));
-    // Copy serialized data
-    std::memcpy(messageBuffer.data() + sizeof(networkDataSize), serializedData.data(), dataSize);
-
-    return messageBuffer;
-}
-
-// Overload for messages with only a type (no data payload)
-std::vector<char> serializeWithHeader(ServerMessageType msgType) {
-    std::ostringstream os(std::ios::binary);
-    {
-        cereal::BinaryOutputArchive archive(os);
-        archive(msgType);
-    }
-    std::string serializedData = os.str();
-    std::uint32_t dataSize = static_cast<std::uint32_t>(serializedData.size());
-    std::uint32_t networkDataSize = asio::detail::socket_ops::host_to_network_long(dataSize);
-
-    std::vector<char> messageBuffer;
-    messageBuffer.resize(sizeof(networkDataSize) + dataSize);
-    std::memcpy(messageBuffer.data(), &networkDataSize, sizeof(networkDataSize));
-    std::memcpy(messageBuffer.data() + sizeof(networkDataSize), serializedData.data(), dataSize);
-    return messageBuffer;
-}
 
 
 // --- Session Implementation ---
@@ -170,8 +112,9 @@ void Session::handleWrite(const asio::error_code& error, std::size_t /*bytes_tra
         if (error != asio::error::operation_aborted) {
             spdlog::error("Error writing to {}: {}", playerName, error.message());
             serverNetwork.leave(shared_from_this());
+        } else {
+            spdlog::debug("Write operation aborted (likely during disconnect).");
         }
-          // else: operation aborted
     }
 }
 
@@ -214,7 +157,7 @@ void Session::processLoginMessage(ClientMessageType msgType, cereal::BinaryInput
         // Basic validation: Check if name is empty
         if (nameAttempt.empty()) {
             spdlog::error("Login failed: Empty name received.");
-            auto errorMsg = serializeWithHeader(ServerMessageType::LoginFailure, std::string("Name cannot be empty."));
+            auto errorMsg = serializeMessage(ServerMessageType::LoginFailure, std::string("Name cannot be empty."));
             deliver(errorMsg);
             return;
         }
@@ -222,10 +165,6 @@ void Session::processLoginMessage(ClientMessageType msgType, cereal::BinaryInput
         auto joinStatus = serverNetwork.join(shared_from_this(), playerName);
         if (joinStatus.has_value()){
             joined = true;
-            // Send LoginSuccess confirmation
-            auto successMsg = serializeWithHeader(ServerMessageType::LoginSuccess);
-            deliver(successMsg);
-            spdlog::info("Player '{}' joined.", playerName);
         }
     });
 }
@@ -312,17 +251,21 @@ Status ServerNetwork::join(SessionPtr session, const std::string& playerName) {
         std::lock_guard<std::mutex> lock(sessionsMutex);
         if (sessions.count(playerName) > 0) {
             spdlog::error("Player name '{}' already taken.", playerName);
-            auto errorMsg = serializeWithHeader(ServerMessageType::LoginFailure, std::string("Name already taken."));
+            auto errorMsg = serializeMessage(ServerMessageType::LoginFailure, std::string("Name already taken."));
             session->deliver(errorMsg);
             return std::unexpected("Name already taken.");
         }
         if (gameManager.allPlayersJoined()) {
             spdlog::error("Game is full. Cannot join.");
-            auto errorMsg = serializeWithHeader(ServerMessageType::LoginFailure, std::string("Game is full."));
+            auto errorMsg = serializeMessage(ServerMessageType::LoginFailure, std::string("Game is full."));
             session->deliver(errorMsg);
             return std::unexpected("Game is full.");
         }
         sessions[playerName] = session;
+        // Send LoginSuccess confirmation
+        auto successMsg = serializeMessage(ServerMessageType::LoginSuccess);
+        session->deliver(successMsg);
+        spdlog::info("Player '{}' joined.", playerName);
     }
     asio::post(gameStrand, [this, playerName = std::move(playerName)]() mutable {
         auto status = gameManager.addPlayer(playerName);
@@ -380,7 +323,7 @@ void ServerNetwork::deliverToAll(const std::vector<char>& message) {
 // --- Action Handlers (Called via gameStrand from Session::processMessage) ---
 
 // Helper to send state updates after successful action
-void ServerNetwork::broadcastGameState(const std::string& lastActionMsg) {
+void ServerNetwork::broadcastGameState(const std::string& lastActionMsg, std::optional<TurnActionStatus> status) {
      // This function MUST run on the gameStrand
     assert(gameStrand.running_in_this_thread());
 
@@ -414,9 +357,9 @@ void ServerNetwork::broadcastGameState(const std::string& lastActionMsg) {
             // Only send if player is connected
             try {
                 ClientGameState clientGameState = makeClientGameState(
-                    player, *roundManager, gameManager, lastActionMsg
+                    player, *roundManager, gameManager, lastActionMsg, status
                 );
-                auto message = serializeWithHeader(ServerMessageType::GameStateUpdate, clientGameState);
+                auto message = serializeMessage(ServerMessageType::GameStateUpdate, clientGameState);
                 targetSession->deliver(message); // Deliver uses session's post, safe
     
             } catch (const std::exception& e) {
@@ -432,11 +375,15 @@ void ServerNetwork::broadcastGameState(const std::string& lastActionMsg) {
 }
 
 // Helper to send error message back to originating player
-void ServerNetwork::sendActionError(const std::string& playerName, const std::string& errorMsg) {
+void ServerNetwork::sendActionError(const std::string& playerName, const std::string& errorMsg, std::optional<TurnActionStatus> status) {
     // This function MUST run on the gameStrand
     assert(gameStrand.running_in_this_thread());
     spdlog::error("Action Error for {}: {}", playerName, errorMsg);
-    auto message = serializeWithHeader(ServerMessageType::ActionError, errorMsg);
+    ActionError actionError {
+        errorMsg,
+        status
+    };
+    auto message = serializeMessage(ServerMessageType::ActionError, actionError);
     deliverToOne(playerName, message); // deliverToOne is thread-safe
 }
 
