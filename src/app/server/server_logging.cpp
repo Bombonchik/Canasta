@@ -51,7 +51,8 @@ void initLogger()
 
     spdlog::init_thread_pool(8192, 1);
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    console_sink->set_level(lvl::info);
+    //console_sink->set_level(lvl::info);
+    console_sink->set_level(lvl::debug);
 
     auto raw_info = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
         (logDir / "server.log").string(), false);
@@ -62,7 +63,8 @@ void initLogger()
         spdlog::sinks::level_range_filter_sink<
             spdlog::sinks::basic_file_sink_mt
         >
-    >(raw_info, lvl::info, lvl::warn);
+    //>(raw_info, lvl::info, lvl::warn);
+    >(raw_info, lvl::debug, lvl::warn);
 
     auto err_sink = std::make_shared<
         spdlog::sinks::level_range_filter_sink<
@@ -75,7 +77,7 @@ void initLogger()
         "server", spdlog::sinks_init_list{console_sink, info_sink, err_sink},
         spdlog::thread_pool(), spdlog::async_overflow_policy::block
     );
-    logger->set_level(lvl::info);
+    logger->set_level(lvl::debug);
     spdlog::set_default_logger(logger);
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v");
     spdlog::flush_every(std::chrono::seconds(2));

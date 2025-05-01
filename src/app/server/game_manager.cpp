@@ -133,6 +133,7 @@ void GameManager::handlePlayerDisconnect(const std::string& playerName) {
 // --- Private Helpers ---
 
 void GameManager::setupTeams() {
+    spdlog::debug("Setting up teams...");
     allPlayers.clear();
     // Create Player objects - GameManager owns them
     for (const auto& name : playerNames) {
@@ -143,6 +144,8 @@ void GameManager::setupTeams() {
         team1.addPlayer(allPlayers[i]);
         team2.addPlayer(allPlayers[i + 1]);
     }
+    spdlog::debug("Team1 : {}", to_string(team1));
+    spdlog::debug("Team2 : {}", to_string(team2));
     spdlog::info("Teams setup: {} vs {}", team1.getName(), team2.getName());
 }
 

@@ -28,6 +28,7 @@ target_include_directories(canasta_core PUBLIC include)
 # Link core library against dependencies needed for its headers/compilation
 target_link_libraries(canasta_core PUBLIC
     cereal::cereal
+    spdlog::spdlog
 )
 
 
@@ -53,6 +54,20 @@ target_link_libraries(canasta_server PRIVATE
     asio::asio
     # cereal::cereal is inherited via canasta_core PUBLIC link
 )
+
+# Enable AddressSanitizer on just the server target (for debug builds)
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+    message(STATUS "Building canasta_server with AddressSanitizer")
+    target_compile_options(canasta_server PRIVATE
+        -g                         # debug symbols
+        -O1                        # optimise modestly for ASan
+        -fsanitize=address
+        -fno-omit-frame-pointer
+    )
+    target_link_libraries(canasta_server PRIVATE
+        -fsanitize=address
+    )
+endif()
 
 # --- Client Executable ---
 add_executable(canasta_client
