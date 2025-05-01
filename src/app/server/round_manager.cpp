@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <algorithm> // For std::find_if
 #include <numeric>   // For std::accumulate
+#include "spdlog/spdlog.h"
 
 // --- Constructor ---
 
@@ -37,7 +38,7 @@ RoundManager::RoundManager(
 
 void RoundManager::startRound() {
     if (roundPhase != RoundPhase::NotStarted) {
-        std::cerr << "Warning: startRound called when round phase was not NotStarted." << std::endl;
+        spdlog::error("Round already started or finished.");
         return;
     }
     roundPhase = RoundPhase::Dealing;
@@ -149,8 +150,8 @@ std::map<std::string, ScoreBreakdown> RoundManager::calculateScores() const {
     roundScores[team2Name] = team2State.getScoreBreakdown(winningTeamName == team2Name ? goingOutBonusAmount : 0);
 
     for (auto& playerRef : playersInTurnOrder) {
-        auto player = playerRef.get();
-        auto teamName = getTeamForPlayer(player).getName();
+        auto& player = playerRef.get();
+        const auto& teamName = getTeamForPlayer(player).getName();
         roundScores[teamName].handPenaltyPoints -= player.getHand().calculatePenalty();
     }
 
@@ -160,10 +161,11 @@ std::map<std::string, ScoreBreakdown> RoundManager::calculateScores() const {
 // --- Private Helpers ---
 
 void RoundManager::dealInitialHands() {
+    spdlog::info("Dealing initial hands to players.");
     for (auto& player : playersInTurnOrder) {
         player.get().resetHand();
         auto & playerTeamState = getTeamStateForPlayer(player.get());
-        auto playerHand = player.get().getHand();
+        auto & playerHand = player.get().getHand();
         for (std::size_t i = 0; i < INITIAL_HAND_SIZE; ++i) {
             std::vector<Card> redThreeCards;
             while (true) {
@@ -188,8 +190,9 @@ void RoundManager::dealInitialHands() {
 
 void RoundManager::setupTurnManagerForCurrentPlayer() {
     if (roundPhase != RoundPhase::InProgress) return;
+    spdlog::debug("Setting up TurnManager for current player: {}", getCurrentPlayer().getName());
 
-    auto player = getCurrentPlayer();
+    auto & player = getCurrentPlayer();
     auto & teamState = getTeamStateForPlayer(player);
     bool teamHasInitial = teamState.hasMadeInitialRankMeld();
     int teamScore = getTeamForPlayer(player).getTotalScore();

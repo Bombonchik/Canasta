@@ -479,7 +479,7 @@ const MeldCommitment& addToExistingCommitment) const {
 void TurnManager::initializeRankMelds(
     const std::vector<RankMeldProposal>& rankInitializationProposals) {
     for (const auto& proposal : rankInitializationProposals) {
-        auto meld = teamRoundState.get().getMeldForRank(proposal.rank);
+        auto* meld = teamRoundState.get().getMeldForRank(proposal.rank);
         assert(meld && "Invariant violated: meld should never be nullopt here");
         auto status = meld->checkInitialization(proposal.cards);
         if (!status.has_value()) // Should never happen
@@ -495,7 +495,7 @@ void TurnManager::initializeRankMelds(
 void TurnManager::revertRankMeldsInitialization(
     const std::vector<RankMeldProposal>& rankInitializationProposals) {
     for (const auto& proposal : rankInitializationProposals) {
-        auto meld = teamRoundState.get().getMeldForRank(proposal.rank);
+        auto* meld = teamRoundState.get().getMeldForRank(proposal.rank);
         assert(meld && meld->isInitialized() && "Invariant violated: meld should always be initialized here");
         meld->reset();
         // Revert the hand state
@@ -508,7 +508,7 @@ void TurnManager::revertRankMeldsInitialization(
 void TurnManager::addCardsToExistingMelds(
     const std::vector<RankMeldProposal>& additionProposals) {
     for (const auto& proposal : additionProposals) {
-        auto meld = teamRoundState.get().getMeldForRank(proposal.rank);
+        auto* meld = teamRoundState.get().getMeldForRank(proposal.rank);
         assert(meld && "Invariant violated: meld should never be nullopt here");
         auto status = meld->checkCardsAddition(proposal.cards);
         if (!status.has_value()) // Should never happen
@@ -524,7 +524,7 @@ void TurnManager::addCardsToExistingMelds(
 void TurnManager::revertRankMeldsAddition(
     const std::vector<RankMeldProposal>& additionProposals) {
     for (const auto& proposal : additionProposals) {
-        auto meld = teamRoundState.get().getMeldForRank(proposal.rank);
+        auto* meld = teamRoundState.get().getMeldForRank(proposal.rank);
         assert(meld && meld->isInitialized() && "Invariant violated: meld should always be initialized here");
         meld->revertAddCards(); // should work
         for (const auto& card : proposal.cards) {
@@ -538,7 +538,7 @@ void TurnManager::initializeBlackThreeMeld(
     const std::optional<BlackThreeMeldProposal>& blackThreeProposal) {
     if (!blackThreeProposal.has_value())
         return; // No Black Three proposal to initialize
-    auto meld = teamRoundState.get().getBlackThreeMeld();
+    auto* meld = teamRoundState.get().getBlackThreeMeld();
     assert(meld && "Invariant violated: meld should never be nullopt here");
     auto blackThreeCards = blackThreeProposal->cards;
     auto status = meld->checkInitialization(blackThreeCards);

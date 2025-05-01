@@ -34,7 +34,7 @@ std::expected<int, std::string> RuleEngine::validateRankMeldInitializationPropos
     for (const auto& proposal : proposals) {
         // Create and initialize the meld for the given rank
         const auto meld = createAndInitializeRankMeld(proposal.cards, proposal.rank);
-        if (!meld)
+        if (!meld.has_value())
             return std::unexpected(meld.error()); // Return the error message
         totalPoints += (*meld)->getPoints();
     }
@@ -165,7 +165,7 @@ RuleEngine::createAndInitializeRankMeld(const std::vector<Card>& cards, Rank ran
 
 Status RuleEngine::checkCardsAddition(const std::vector<Card>& cards,
     Rank rank, const TeamRoundState& teamRoundState) {
-    const auto meld = teamRoundState.getMeldForRank(rank);
+    const BaseMeld* meld = teamRoundState.getMeldForRank(rank);
     if (!meld || !meld->isInitialized())
         return std::unexpected("Meld not initialized for rank " + to_string(rank));
 
@@ -185,7 +185,7 @@ std::size_t RuleEngine::getCanastaCount(const std::vector<std::unique_ptr<BaseMe
 
 bool RuleEngine::checkIfHandHasCardsWithRank(const Hand& playerHand, Rank rank, std::size_t count) {
     // Check if the player's hand has the specified number of cards with the given rank
-    const auto playerCards = playerHand.getCards();
+    const auto& playerCards = playerHand.getCards();
     return std::count_if(playerCards.begin(), playerCards.end(),
         [rank](const Card& card) { return card.getRank() == rank; }) >= count;
 }
@@ -213,7 +213,7 @@ std::expected<MeldCommitment, std::string> RuleEngine::checkTakingDiscardPile(
             "and you don't have 2 cards of rank " + to_string(topDiscardCardRank)
         };
     // Check if the player's team has an initialized meld of the same rank
-    const auto meld = teamRoundState.getMeldForRank(topDiscardCardRank);
+    const BaseMeld* meld = teamRoundState.getMeldForRank(topDiscardCardRank);
     if (!meld || !meld->isInitialized()) {
         return std::unexpected{
             "Cannot take discard pile: no initialized meld of rank "
