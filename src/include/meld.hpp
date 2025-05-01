@@ -204,6 +204,21 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Queen>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::King>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Ace>)
 
+struct MeldRequest {
+    std::vector<Card> cards;
+    std::optional<Rank> addToRank;
+      // - nullopt = “I want to initialize a NEW meld”
+      // - Rank    = “I want to add these cards to the existing meld of rank addToRank”
+
+    // Add Cereal serialize method
+    template <class Archive>
+    void serialize(Archive& ar) {
+        // Need to serialize Rank enum as underlying type (e.g., int)
+        // Assuming Rank has a Cereal serialization function defined elsewhere
+        ar(CEREAL_NVP(cards), CEREAL_NVP(addToRank));
+    }
+};
+
 
 // Implementation of Meld<R>::initialize
 template <Rank R>

@@ -14,39 +14,6 @@
 #include "server/server_deck.hpp"
 #include "rule_engine.hpp" // For MeldProposal definition and static methods
 
-/**
- * @brief Defines the possible outcomes of handling a player action within a turn.
- */
-enum class TurnActionStatus {
-    Success_TurnContinues,      // Action valid (draw, take pile, meld), turn proceeds to Meld/Discard phase
-    Success_TurnOver,           // Discard valid, turn ended normally
-    Success_WentOut,            // Meld or Discard valid, player went out, turn ended
-    Error_MainDeckEmpty,        // Attempted to draw from an empty main deck
-    Error_MainDeckEmptyDiscardPileCantBeTaken, // Attempted to take discard pile when main deck is empty
-    Error_InvalidAction,        // General invalid action (e.g., wrong phase, bad cards, invalid discard type)
-    Error_InvalidMeld,          // Invalid meld (e.g., not enough cards, wrong rank)
-    Error_MeldRequirementNotMet,// Initial meld points not met after drawing deck (discard rejected, player must retry meld/discard)
-};
-
-struct TurnActionResult {
-    TurnActionStatus status;
-    std::string     message;
-};
-
-struct MeldRequest {
-    std::vector<Card> cards;
-    std::optional<Rank> addToRank;
-      // - nullopt = “I want to initialize a NEW meld”
-      // - Rank    = “I want to add these cards to the existing meld of rank addToRank”
-
-    // Add Cereal serialize method
-    template <class Archive>
-    void serialize(Archive& ar) {
-        // Need to serialize Rank enum as underlying type (e.g., int)
-        // Assuming Rank has a Cereal serialization function defined elsewhere
-        ar(CEREAL_NVP(cards), CEREAL_NVP(addToRank));
-    }
-};
 
 /**
  * @brief Manages the state and logic for a single player's turn.
