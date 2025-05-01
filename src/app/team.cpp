@@ -20,7 +20,7 @@ void Team::addPlayer(Player& player) {
 bool Team::hasPlayer(const Player& player) const {
     // Check if the player is in the team
     return std::any_of(players.begin(), players.end(),
-        [&](const std::reference_wrapper<Player>& p) { return &p.get() == &player; });
+        [&](const std::reference_wrapper<Player>& p) { return p.get().getName() == player.getName(); });
 }
 
 // Get the players in the team
