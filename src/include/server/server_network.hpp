@@ -1,7 +1,6 @@
 #ifndef SERVER_NETWORK_HPP
 #define SERVER_NETWORK_HPP
 
-#include <asio.hpp>
 #include <memory>
 #include <vector>
 #include <string>
@@ -9,25 +8,10 @@
 #include <deque>
 #include <mutex> // For thread safety if needed later, though game logic runs on one strand
 #include <functional> // For std::function
-#include <cereal/archives/binary.hpp>
-#include <sstream>
 
 #include "game_manager.hpp" // To interact with the game logic
 #include "game_state.hpp"   // For ClientGameState
-#include "card.hpp"         // For action parameters like Card
-#include "turn_manager.hpp" // For MeldRequest
-
-// Define a simple message type enum (or use strings, etc.)
-// This needs to be agreed upon between client and server.
-enum class ClientMessageType : uint8_t {
-    Login, // Contains player name
-    DrawDeck,
-    TakeDiscardPile,
-    Meld, // Contains std::vector<MeldRequest>
-    Discard, // Contains Card
-    Revert,
-    // Add others like Chat, Quit etc. if needed
-};
+#include "network.hpp"
 
 // Forward declaration
 class Session;
@@ -103,9 +87,11 @@ private:
     template<typename ActionFn>
     void dispatchAction(const std::string& playerName, ActionFn&& action);
 
-    void sendActionError(const std::string& playerName, const std::string& errorMsg);
+    void sendActionError(const std::string& playerName, const std::string& errorMsg,
+        std::optional<TurnActionStatus> status = std::nullopt);
 
-    void broadcastGameState(const std::string& lastActionMsg);
+    void broadcastGameState(const std::string& lastActionMsg,
+        std::optional<TurnActionStatus> status = std::nullopt);
 
     // --- Member Variables ---
     asio::io_context& ioContext; // Reference to the main I/O context
@@ -132,10 +118,10 @@ void ServerNetwork::dispatchAction(const std::string& playerName, ActionFn&& act
     TurnActionResult result = action(*rm);
     if (result.status < TurnActionStatus::Error_MainDeckEmpty) {
         // success → broadcast the result.message
-        broadcastGameState(result.message);
+        broadcastGameState(result.message, result.status);
     } else {
         // failure → send error back to just that player
-        sendActionError(playerName, result.message);
+        sendActionError(playerName, result.message, result.status);
     }
 }
 
