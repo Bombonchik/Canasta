@@ -2,7 +2,9 @@
 #define HAND_HPP
 
 #include <vector>
+#include <deque> // Include for deque serialization
 #include <cereal/types/vector.hpp> // Include for vector serialization
+#include <cereal/types/deque.hpp> // Include for vector serialization
 #include <algorithm> // Needed for std::lower_bound, std::find
 #include "card.hpp" // Assuming card.hpp defines the Card class
 
@@ -23,7 +25,7 @@ public:
     bool removeCard(const Card& card);
 
     // Get all cards in the hand
-    const std::vector<Card>& getCards() const;
+    const std::deque<Card>& getCards() const;
 
     // // Get a mutable reference to the cards (use with caution)
     // std::vector<Card>& getCards();
@@ -52,8 +54,8 @@ private:
     // Internal helper to find the insertion point for a card to maintain order.
     // std::vector<Card>::iterator findInsertionPoint(const Card& card); // Could be used by addCard
 
-    std::vector<Card> cards; // Stores cards, kept sorted by Card::operator<
-    std::vector<Card> backupCards; // Backup for undo/redo operations
+    std::deque<Card> cards; // Stores cards, kept sorted by Card::operator<
+    std::deque<Card> backupCards; // Backup for undo/redo operations
     bool hasPendingReversible = false; // Whether there is a pending reversible action
 };
 

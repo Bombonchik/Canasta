@@ -48,7 +48,7 @@ bool Hand::removeCard(const Card& card) {
 }
 
 // Get read-only access to all cards in the hand (cards are kept sorted).
-const std::vector<Card>& Hand::getCards() const {
+const std::deque<Card>& Hand::getCards() const {
     return cards;
 }
 
