@@ -20,35 +20,6 @@ enum class Color {
     BrightBlue, BrightMagenta, BrightCyan, BrightWhite
 };
 
-
-/*class CanastaConsole {
-public:
-    CanastaConsole();
-    void print(const std::string& message,
-        Color color = Color::Default,
-        bool newline = true);
-    void clear();
-
-private:
-    std::shared_ptr<spdlog::logger> loggerWithNL;
-    std::shared_ptr<spdlog::logger> loggerNoNL;
-
-    static std::string applyColor(const std::string& msg, Color c);
-
-    template<typename BaseSink>
-    class SinkNoNewline : public BaseSink {
-    protected:
-        using mutex_t = typename BaseSink::mutex_t;
-        void sink_it(const spdlog::details::log_msg &msg) override {
-            spdlog::memory_buf_t formatted;
-            this->formatter_->format(msg, formatted);
-            std::lock_guard<mutex_t> lock(this->mutex_);
-            BaseSink::stream() << fmt::to_string(formatted);
-            BaseSink::flush_();
-        }
-    };
-};*/
-
 class CanastaConsole {
 public:
     // Constructor: enables UTF-8 + ANSI on Windows
