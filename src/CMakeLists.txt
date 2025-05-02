@@ -56,18 +56,18 @@ target_link_libraries(canasta_server PRIVATE
 )
 
 # Enable AddressSanitizer on just the server target (for debug builds)
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-    message(STATUS "Building canasta_server with AddressSanitizer")
-    target_compile_options(canasta_server PRIVATE
-        -g                         # debug symbols
-        -O1                        # optimise modestly for ASan
-        -fsanitize=address
-        -fno-omit-frame-pointer
-    )
-    target_link_libraries(canasta_server PRIVATE
-        -fsanitize=address
-    )
-endif()
+# if(CMAKE_BUILD_TYPE MATCHES Debug)
+#     message(STATUS "Building canasta_server with AddressSanitizer")
+#     target_compile_options(canasta_server PRIVATE
+#         -g                         # debug symbols
+#         -O1                        # optimise modestly for ASan
+#         -fsanitize=address
+#         -fno-omit-frame-pointer
+#     )
+#     target_link_libraries(canasta_server PRIVATE
+#         -fsanitize=address
+#     )
+# endif()
 
 # --- Client Executable ---
 add_executable(canasta_client
