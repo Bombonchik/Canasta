@@ -73,6 +73,7 @@ target_link_libraries(canasta_server PRIVATE
 add_executable(canasta_client
     app/client/client_main.cpp
     app/client/client_network.cpp
+    app/client/canasta_console.cpp
 )
 
 # Specify include directory for the client
