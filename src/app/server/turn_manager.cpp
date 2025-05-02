@@ -241,7 +241,7 @@ std::expected<std::size_t, TurnActionResult> TurnManager::checkMeldRequestsCards
             TurnActionStatus::Error_InvalidMeld,
             "No meld request provided."
         });
-    auto cardsInHand = std::vector<Card>(hand.get().getCards());
+    auto cardsInHand = std::deque<Card>(hand.get().getCards());
     for (const auto& request : meldRequests) {
         for (const auto& card : request.cards) {
             auto it = std::find(cardsInHand.begin(), cardsInHand.end(), card);

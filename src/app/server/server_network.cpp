@@ -289,7 +289,7 @@ void ServerNetwork::leave(SessionPtr session) {
     std::string nameToRemove = session->getPlayerName();
     if (!nameToRemove.empty()) {
         sessions.erase(nameToRemove);
-        spdlog::info("Player '{}' left → shutting down server..", nameToRemove);
+        spdlog::info("Player '{}' left, shutting down server..", nameToRemove);
         
         asio::error_code ec;
         acceptor.close(ec);
