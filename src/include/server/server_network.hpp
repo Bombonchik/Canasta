@@ -111,8 +111,12 @@ template<typename ActionFn>
 void ServerNetwork::dispatchAction(const std::string& playerName, ActionFn&& action) {
     assert(gameStrand.running_in_this_thread());
     auto *rm = gameManager.getCurrentRoundManager();
-    if (!rm || rm->getCurrentPlayer().getName() != playerName) {
-        sendActionError(playerName, "Not your turn or round not active.");
+    if (!rm) {
+        sendActionError(playerName, "Round not active.");
+        return;
+    }
+    if (rm->getCurrentPlayer().getName() != playerName) {
+        sendActionError(playerName, "Not your turn.");
         return;
     }
     TurnActionResult result = action(*rm);
