@@ -12,6 +12,8 @@
 #include "cereal/archives/binary.hpp"
 #include <cereal/types/string.hpp>
 #include "server/server_logging.hpp"
+#include "server/server_network.hpp"
+#include "server/game_manager.hpp"
 
 #include "game_state.hpp"
 //#include "cereal/cereal.hpp"
@@ -58,93 +60,6 @@ void detectOSAndLaunchTerminals(int numPlayers) {
         std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Add delay to ensure terminals launch correctly
         launchTerminal(i);
     }
-}
-
-void check_db() {
-    try {
-        // Create or open a database file
-        SQLite::Database db("example.db", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
-
-        // Create a new table
-        db.exec("CREATE TABLE IF NOT EXISTS user (id INTEGER PRIMARY KEY, name TEXT);");
-
-        // Insert a row into the table
-        SQLite::Statement insert(db, "INSERT INTO user (name) VALUES (?)");
-        insert.bind(1, "Alice");
-        insert.exec();
-
-        // Query the data
-        SQLite::Statement query(db, "SELECT id, name FROM user");
-        while (query.executeStep()) {
-            std::cout << "User: " << query.getColumn(0) << ", " << query.getColumn(1) << std::endl;
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
-}
-
-void check_logging() {
-    spdlog::info("Welcome to spdlog!");
-    spdlog::error("Some error message with arg: {}", 1);
-
-    spdlog::warn("Easy padding in numbers like {:08d}", 12);
-    spdlog::critical("Support for int: {0:d};  hex: {0:x};  oct: {0:o}; bin: {0:b}", 42);
-    spdlog::info("Support for floats {:03.2f}", 1.23456);
-    spdlog::info("Positional args are {1} {0}..", "too", "supported");
-    spdlog::info("{:<30}", "left aligned");
-
-    spdlog::set_level(spdlog::level::debug); // Set global log level to debug
-    spdlog::debug("This message should be displayed..");
-
-    // change log pattern
-    spdlog::set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
-
-    // Compile time log levels
-    // Note that this does not change the current log level, it will only
-    // remove (depending on SPDLOG_ACTIVE_LEVEL) the call on the release code.
-    SPDLOG_TRACE("Some trace message with param {}", 42);
-    SPDLOG_DEBUG("Some debug message");
-}
-
-// Simple function to test Asio functionality
-void check_asio() {
-    try {
-        asio::io_context io_context;
-
-        // Create a timer that expires in 1 second
-        asio::steady_timer timer(io_context, std::chrono::seconds(1));
-        timer.async_wait([](const asio::error_code& error) {
-            if (!error) {
-                std::cout << "Asio works! Timer expired after 1 second." << std::endl;
-            } else {
-                std::cerr << "Timer error: " << error.message() << std::endl;
-            }
-        });
-
-        // Run the io_context to process the timer
-        io_context.run();
-    } catch (const std::exception& e) {
-        std::cerr << "Asio error: " << e.what() << std::endl;
-    }
-}
-
-void check_cereal() {
-    // Serialization
-    std::ostringstream os;
-    {
-        cereal::BinaryOutputArchive archive(os);
-        archive(GameState{1, "Hello!"});
-    }
-    std::string serializedData = os.str();
-
-    // Deserialization
-    std::istringstream is(serializedData);
-    GameState deserializedState;
-    {
-        cereal::BinaryInputArchive archive(is);
-        archive(deserializedState);
-    }
-    spdlog::info("{} {}", deserializedState.currentPlayer, deserializedState.publicMessage);
 }
 
 // Broadcast the game state to all connected clients
@@ -229,25 +144,56 @@ void startServer(ServerData& serverData, int numPlayers) {
     }).detach();
 }
 
-
-int main() {
-    initLogger();
-    spdlog::info("----------Canasta Server is starting----------");
-    int numPlayers = 4;
+void oldMain() {
     ServerData serverData;
     serverData.gameState = GameState{0, "Welcome to the game!"};
 
-    spdlog::info("Launching {} player terminals...", numPlayers);
-    for (int i = 0; i < numPlayers; ++i) {
-        launchTerminal(i);
-    }
-
+    int playersCount = 4;
     spdlog::info("Starting the network server...");
-    startServer(serverData, numPlayers);
+    startServer(serverData, playersCount);
 
     // Keep the main thread alive
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+}
+
+
+int main() {
+    initLogger();
+    spdlog::info("----------Canasta Server is starting----------");
+    int playersCount = 4;
+
+    try {
+        // 3) construct the core game manager
+        GameManager gameManager(static_cast<std::size_t>(playersCount));
+
+        // 4) set up ASIO
+        asio::io_context ioContext;
+
+        // listen on all interfaces, port SERVER_PORT
+        asio::ip::tcp::endpoint endpoint{ asio::ip::tcp::v4(), PORT};
+        ServerNetwork server(ioContext, endpoint, gameManager);
+
+        // 5) begin accepting connections
+        server.startAccept();
+
+        // 6) fire up each client in its own terminal window
+        spdlog::info("Launching {} player terminals…", playersCount);
+        for (int i = 0; i < playersCount; ++i) {
+            launchTerminal(i);
+            // slight stagger so they don’t all hammer the server simultaneously
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        }
+
+        // 7) run the ASIO loop (this will block until you call ioContext.stop())
+        ioContext.run();
+
+        spdlog::info("Server shutting down cleanly.");
+    }
+    catch (std::exception& e) {
+        spdlog::error("Unhandled exception: {}", e.what());
+        return 1;
     }
     spdlog::shutdown();
     return 0;
