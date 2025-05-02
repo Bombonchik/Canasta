@@ -331,8 +331,9 @@ void ServerNetwork::broadcastGameState(const std::string& lastActionMsg, std::op
     if (auto* roundManager = gameManager.getCurrentRoundManager()) {
         if (roundManager->isRoundOver()) {
             spdlog::info("Round is over. Advancing game state.");
-            broadcastNewRound = true;
             gameManager.advanceGameState(); // Advance game state
+            if (!gameManager.isGameOver())
+                broadcastNewRound = true;
         }
     }
 
