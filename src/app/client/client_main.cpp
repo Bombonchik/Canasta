@@ -8,6 +8,7 @@
 #include "cereal/archives/binary.hpp"
 #include <cereal/types/string.hpp>
 #include "client/client_network.hpp"
+#include "client/canasta_console.hpp"
 
 // Constants
 constexpr int SERVER_PORT = 12345;
@@ -26,6 +27,7 @@ void configureLogger() {
     auto console = spdlog::stdout_color_mt("game_logger");
     spdlog::set_default_logger(console);
     spdlog::set_pattern("%v"); // Only display the message (no timestamp, level, etc.)
+    
 }
 
 static std::string fg_color(CardColor c) {
@@ -37,65 +39,6 @@ static std::string fg_color(CardColor c) {
     return "\033[0m";
 }
 
-
-
-// Function to receive the game state from the server
-GameState receiveGameState(asio::ip::tcp::socket& socket) {
-    asio::streambuf buf;
-    asio::read_until(socket, buf, '\n');
-    std::istream is(&buf);
-    GameState gameState;
-    cereal::BinaryInputArchive archive(is);
-    archive(gameState);
-    return gameState;
-}
-
-// Function to send the player's input to the server
-void sendPlayerInput(asio::ip::tcp::socket& socket, const GameState& gameState) {
-    std::ostringstream os;
-    {
-        cereal::BinaryOutputArchive archive(os);
-        archive(gameState);
-    }
-    std::string serializedData = os.str() + "\n";
-    asio::write(socket, asio::buffer(serializedData));
-}
-
-// Function to display the game state
-void displayGameState(const GameState& gameState, int playerIndex) {
-    clearConsole(); // Clear the console before displaying updated information
-    spdlog::info("Public Message: {}", gameState.publicMessage);
-    spdlog::info("Player {}, {}", playerIndex + 1,
-                gameState.currentPlayer == playerIndex ? "it's your turn." : "it's not your turn.");
-    if (gameState.currentPlayer != playerIndex) {
-        spdlog::info("Your private message: Hello from Player {}", playerIndex + 1);
-    }
-}
-
-void playGame(asio::ip::tcp::socket& socket, int playerIndex) {
-    while (true) {
-        try {
-            GameState gameState = receiveGameState(socket); // Get the latest game state
-            displayGameState(gameState, playerIndex); // Display the game state
-
-            if (gameState.currentPlayer == playerIndex) {
-                std::string newMessage;
-                spdlog::info("Enter a new public message: ");
-                std::getline(std::cin, newMessage);
-
-                gameState.publicMessage = newMessage;
-                gameState.currentPlayer = (gameState.currentPlayer + 1) % 4; // Pass turn to the next player
-                sendPlayerInput(socket, gameState); // Send the updated game state to the server
-            }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(REFRESH_DELAY_MS));
-        } catch (const std::exception& e) {
-            spdlog::error("Connection lost: {}", e.what());
-            break;
-        }
-    }
-}
-
 void displayClientGameState(const ClientGameState& gameState, bool isMyTurn) {
     //clearConsole(); // Clear the console before displaying updated information
     spdlog::info("Is my turn: {}", isMyTurn);
@@ -105,10 +48,55 @@ void displayClientGameState(const ClientGameState& gameState, bool isMyTurn) {
         for (std::size_t i = 0; i < handCards.size(); ++i) {
             spdlog::info("Card {}: {}{}{}", i + 1, fg_color(handCards[i].getColor()), handCards[i].toString(), "\033[0m");
         }
-        //spdlog::info("{}{}{}", fg_color(card.getColor()), card.toString(), "\033[0m");
     } 
 }
 
+void testCanastaConsole() {
+    CanastaConsole ui;
+    ui.clear();
+    for (int i = 0; i < 20; ++i) {
+        ui.print("Testing CanastaConsole: " + std::to_string(i), Color::BrightCyan);
+    }
+    ui.clear();
+
+    ui.print("CanastaConsole Test Harness", Color::BrightMagenta);
+    ui.print("--------------------------------", Color::BrightWhite);
+
+    // Demonstrate colors
+    ui.print("Default color text");
+    ui.print("Red message", Color::Red);
+    ui.print("Green message", Color::Green);
+    ui.print("Yellow message", Color::Yellow);
+    ui.print("Blue message", Color::Blue);
+    ui.print("Magenta message", Color::Magenta);
+    ui.print("Cyan message", Color::Cyan);
+    ui.print("White message", Color::White);
+
+    ui.print("BrightRed message", Color::BrightRed);
+    ui.print("BrightGreen message", Color::BrightGreen);
+    ui.print("BrightYellow message", Color::BrightYellow);
+    ui.print("BrightBlue message", Color::BrightBlue);
+    ui.print("BrightMagenta message", Color::BrightMagenta);
+    ui.print("BrightCyan message", Color::BrightCyan);
+    ui.print("BrightWhite message", Color::BrightWhite);
+
+    // Demonstrate UTF-8
+    ui.print("UTF-8 symbols: ✔ ✓ → ← ▲ ▼ ★ ☆ ☯ ☢", Color::BrightCyan);
+    ui.print("Unicode emojis: 😀 🎉 🚀 🃏", Color::Yellow);
+    ui.print("CJK characters: 漢字 仮名 가나다", Color::Green);
+
+    // Demonstrate printing without newline
+    ui.print("Loading: [", Color::BrightBlue, false);
+    for (int i = 0; i <= 10; ++i) {
+        ui.print(std::to_string(i * 10) + "%", Color::BrightGreen, false);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        ui.print("Loading: [" + std::to_string((i+1)*10) + "%] ", Color::BrightBlue, false);
+    }
+    ui.print("] Done!", Color::BrightGreen);
+
+    // Pause before exit
+    ui.print("Press Enter to exit...", Color::BrightWhite, false);
+}
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -121,6 +109,10 @@ int main(int argc, char* argv[]) {
 
     try {
         configureLogger(); // Configure the logger
+        //CanastaConsole console;
+        //console.print("Starting Canasta Client for " + playerName, Color::Green);
+        testCanastaConsole();
+
 
         asio::io_context ioContext;
         std::this_thread::sleep_for(std::chrono::milliseconds(500 * playerIndex));
@@ -163,7 +155,7 @@ int main(int argc, char* argv[]) {
                 }
             }
             displayClientGameState(gameState, myInfo.isCurrentTurn);
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(40000));
             if (myInfo.isCurrentTurn || rand() * (playerIndex + 1) % 19 == 0) {
                 if (!drawDeck) {
                     clientNetwork->sendDrawDeck();
