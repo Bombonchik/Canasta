@@ -7,6 +7,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "cereal/archives/binary.hpp"
 #include <cereal/types/string.hpp>
+#include "client/client_network.hpp"
 
 // Constants
 constexpr int SERVER_PORT = 12345;
@@ -26,6 +27,17 @@ void configureLogger() {
     spdlog::set_default_logger(console);
     spdlog::set_pattern("%v"); // Only display the message (no timestamp, level, etc.)
 }
+
+static std::string fg_color(CardColor c) {
+    switch(c) {
+        case CardColor::RED:   return "\033[31m";  // ANSI “set foreground to red”
+        //case CardColor::BLACK: return "\033[90m";  // ANSI “bright-black” (gray)
+        case CardColor::BLACK: return "\033[37m";  // ANSI “bright-black” (gray)
+    }
+    return "\033[0m";
+}
+
+
 
 // Function to receive the game state from the server
 GameState receiveGameState(asio::ip::tcp::socket& socket) {
@@ -54,7 +66,7 @@ void displayGameState(const GameState& gameState, int playerIndex) {
     clearConsole(); // Clear the console before displaying updated information
     spdlog::info("Public Message: {}", gameState.publicMessage);
     spdlog::info("Player {}, {}", playerIndex + 1,
-                 gameState.currentPlayer == playerIndex ? "it's your turn." : "it's not your turn.");
+                gameState.currentPlayer == playerIndex ? "it's your turn." : "it's not your turn.");
     if (gameState.currentPlayer != playerIndex) {
         spdlog::info("Your private message: Hello from Player {}", playerIndex + 1);
     }
@@ -84,6 +96,20 @@ void playGame(asio::ip::tcp::socket& socket, int playerIndex) {
     }
 }
 
+void displayClientGameState(const ClientGameState& gameState, bool isMyTurn) {
+    //clearConsole(); // Clear the console before displaying updated information
+    spdlog::info("Is my turn: {}", isMyTurn);
+    spdlog::info("My player {}", gameState.myPlayerData.getName());
+    if (isMyTurn) {
+        const auto& handCards = gameState.myPlayerData.getHand().getCards();
+        for (std::size_t i = 0; i < handCards.size(); ++i) {
+            spdlog::info("Card {}: {}{}{}", i + 1, fg_color(handCards[i].getColor()), handCards[i].toString(), "\033[0m");
+        }
+        //spdlog::info("{}{}{}", fg_color(card.getColor()), card.toString(), "\033[0m");
+    } 
+}
+
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         spdlog::error("Player index not specified!");
@@ -91,23 +117,81 @@ int main(int argc, char* argv[]) {
     }
 
     int playerIndex = std::stoi(argv[1]);
+    std::string playerName = "Player" + std::to_string(playerIndex + 1);
 
     try {
         configureLogger(); // Configure the logger
 
-        asio::io_context io_context;
-        asio::ip::tcp::socket socket(io_context);
-        std::this_thread::sleep_for(std::chrono::milliseconds(600));
+        asio::io_context ioContext;
+        std::this_thread::sleep_for(std::chrono::milliseconds(500 * playerIndex));
 
         // Connect to the server
-        socket.connect(asio::ip::tcp::endpoint(asio::ip::address::from_string("127.0.0.1"), SERVER_PORT));
-        spdlog::info("Connected to the server at 127.0.0.1:{}", SERVER_PORT);
+        auto clientNetwork = std::make_shared<ClientNetwork>(ioContext);
+        //clientNetwork->connect("127.0.0.1", std::to_string(SERVER_PORT), playerName);
+        if (clientNetwork->isConnected()) {
+            spdlog::info("Connected to the server at 127.0.0.1");
+        }
+        clientNetwork->setOnLoginSuccess([playerName]() {
+            spdlog::info("[{}] Login succeeded.", playerName);
+        });
+        clientNetwork->setOnLoginFailure([&](const std::string& reason) {
+            spdlog::error("[{}] Login failed: {}", playerName, reason);
+            ioContext.stop();
+        });
+        clientNetwork->setOnDisconnect([&]() {
+            spdlog::info("[{}] Disconnected from server.", playerName);
+            ioContext.stop();
+        });
+        clientNetwork->setOnActionError([&](const ActionError& error) {
+            if (error.status.has_value()) {
+                spdlog::info("[{}] Action status {}: {}", playerName, static_cast<int>(error.status.value()), error.message);
+            } else {
+                spdlog::info("[{}] Action status: {}", playerName, error.message);
+            }
+        });
+        bool drawDeck = false;
+        bool discarded = false;
+        clientNetwork->setOnGameStateUpdate([&](const ClientGameState& gameState) {
+            spdlog::info("[{}] Received game state update.", playerName);
+            // Handle game state update
+            // For example, display the game state or process it further
+            PlayerPublicInfo myInfo;
+            for(const auto& playerInfo : gameState.allPlayersPublicInfo) {
+                if (playerInfo.name == playerName) {
+                    myInfo = playerInfo;
+                    break;
+                }
+            }
+            displayClientGameState(gameState, myInfo.isCurrentTurn);
+            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+            if (myInfo.isCurrentTurn || rand() * (playerIndex + 1) % 19 == 0) {
+                if (!drawDeck) {
+                    clientNetwork->sendDrawDeck();
+                    drawDeck = true;
+                }
+                if (!discarded) {
+                    clientNetwork->sendDiscard(gameState.myPlayerData.getHand().getCards()[3]);
+                    discarded = true;
+                }
+                
+            } else {
+                spdlog::info("[{}] Waiting for your turn...", playerName);
+                drawDeck = false;
+                discarded = false;
+            }
+        });
 
-        playGame(socket, playerIndex); // Start the game loop
+        spdlog::info("[{}] Attempting to connect to 127.0.0.1:{}", playerName, SERVER_PORT);
+        clientNetwork->connect("127.0.0.1", std::to_string(SERVER_PORT), playerName);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50 * playerIndex));
+
+        ioContext.run();
     } catch (const std::exception& e) {
         spdlog::error("Error: {}", e.what());
         return 1;
     }
 
     return 0;
+
 }
