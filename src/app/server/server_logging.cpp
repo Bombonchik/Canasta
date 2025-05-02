@@ -72,13 +72,11 @@ void initLogger()
         >
     >(raw_err, lvl::err, lvl::critical);
 
-    // one async logger that fans out to all sinks
-    auto logger = std::make_shared<spdlog::async_logger>(
-        "server", spdlog::sinks_init_list{console_sink, info_sink, err_sink},
-        spdlog::thread_pool(), spdlog::async_overflow_policy::block
+    auto logger = std::make_shared<spdlog::logger>(
+        "server", spdlog::sinks_init_list{console_sink, info_sink, err_sink}
     );
+
     logger->set_level(lvl::debug);
     spdlog::set_default_logger(logger);
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] %v");
-    spdlog::flush_every(std::chrono::seconds(2));
 }
