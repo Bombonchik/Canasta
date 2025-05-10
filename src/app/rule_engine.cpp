@@ -1,5 +1,6 @@
 #include "rule_engine.hpp"
 #include <array>
+//#include "spdlog/spdlog.h"
 
 bool RuleEngine::canDiscard(const Hand& playerHand, const Card& discardCard) {
     // Check if the card is in the player's hand
@@ -36,6 +37,7 @@ std::expected<int, std::string> RuleEngine::validateRankMeldInitializationPropos
         const auto meld = createAndInitializeRankMeld(proposal.cards, proposal.rank);
         if (!meld.has_value())
             return std::unexpected(meld.error()); // Return the error message
+        //spdlog::debug("Meld created for rank {}: {} cards, {} points", (*meld)->isInitialized(), (*meld)->getCards().size(), (*meld)->getPoints());
         totalPoints += (*meld)->getPoints();
     }
     return totalPoints; // Success
@@ -195,25 +197,39 @@ std::expected<MeldCommitment, std::string> RuleEngine::checkTakingDiscardPile(
                                 const Card& topDiscardCard,
                                 const TeamRoundState& teamRoundState,
                                 bool isPileFrozen) {
-    bool isFrozen = isPileFrozen;
-    // Check if the discard pile is frozen
-    if (!teamRoundState.hasMadeInitialRankMeld())
-        isFrozen = true; // Discard pile is frozen if no initial meld
+    bool hasMadeInitialMeld = teamRoundState.hasMadeInitialRankMeld();
     Rank topDiscardCardRank = topDiscardCard.getRank();
-    bool hasCardsWithRank = checkIfHandHasCardsWithRank(playerHand, topDiscardCardRank, INITIALIZE_COMMITMENT_COUNT - 1);
-    if (hasCardsWithRank)
+    bool hasCardsWithRank = checkIfHandHasCardsWithRank(playerHand, topDiscardCardRank, STRICT_COMMITMENT_COUNT - 1);
+    const BaseMeld* meld = teamRoundState.getMeldForRank(topDiscardCardRank);
+    // Check if the player can take the discard pile and initialize a meld
+    if (hasCardsWithRank && (!meld || !meld->isInitialized()))
         return MeldCommitment{
             MeldCommitmentType::Initialize,
             topDiscardCardRank,
-            INITIALIZE_COMMITMENT_COUNT
+            STRICT_COMMITMENT_COUNT
         };
-    if (isFrozen)
+    // If player isn't able to initialize a meld, check if they can add to an existing one
+    if (!hasMadeInitialMeld)
+        return std::unexpected{
+            "Cannot take discard pile: you must have at least one initialized meld"
+        };
+    
+    // Pile is frozen
+    if (isPileFrozen) {
+        if (hasCardsWithRank && meld && !meld->isInitialized()) {
+            return MeldCommitment{
+                MeldCommitmentType::AddToExisting,
+                topDiscardCardRank,
+                STRICT_COMMITMENT_COUNT
+            };
+        }
         return std::unexpected{
             "Cannot take discard pile: it is frozen "
             "and you don't have 2 cards of rank " + to_string(topDiscardCardRank)
         };
+    }
+    // Pile isn't frozen
     // Check if the player's team has an initialized meld of the same rank
-    const BaseMeld* meld = teamRoundState.getMeldForRank(topDiscardCardRank);
     if (!meld || !meld->isInitialized()) {
         return std::unexpected{
             "Cannot take discard pile: no initialized meld of rank "
@@ -222,15 +238,15 @@ std::expected<MeldCommitment, std::string> RuleEngine::checkTakingDiscardPile(
     }
     if (meld->isCanastaMeld()) {
         return std::unexpected{
-            "Cannot take discard pile: the meld of rank" + 
-            to_string(topDiscardCardRank) + "is already a canasta"
+            "Cannot take discard pile: the meld of rank " + 
+            to_string(topDiscardCardRank) + " is already a canasta"
         };
     }
     // player can take the pile and should add the top card to the meld of that rank
     return MeldCommitment {
         MeldCommitmentType::AddToExisting,
         topDiscardCardRank,
-        ADD_COMMITMENT_COUNT
+        EASY_COMMITMENT_COUNT
     };
 }
 
