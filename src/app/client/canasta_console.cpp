@@ -29,10 +29,25 @@ void CanastaConsole::print(const std::string& msg,
     }
 }
 
+void CanastaConsole::printNewLine() {
+    print("\n");
+}
+
+void CanastaConsole::printSpace(std::size_t count) {
+    for (std::size_t i = 0; i < count; ++i) {
+        print(" ");
+    }
+}
+
 void CanastaConsole::clear() {
     // ANSI: clear screen and move cursor home
     std::cout << "\x1b[2J\x1b[H";
     std::cout.flush();
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
 }
 
 std::string CanastaConsole::applyColor(const std::string& text, Color color) {
