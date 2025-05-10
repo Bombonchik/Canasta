@@ -26,6 +26,12 @@ struct GameState {
     }
 };
 
+enum class ClientGameOutcome {
+    Win,
+    Lose,
+    Draw
+};
+
 struct ClientGameState {
     // Deck/Discard Public State
     ClientDeck deckState; // Contains top discard, counts, frozen status
@@ -49,7 +55,7 @@ struct ClientGameState {
 
     // Game Status
     bool isGameOver = false;
-    std::optional<GameOutcome> gameOutcome; // Set only if isGameOver is true
+    std::optional<ClientGameOutcome> gameOutcome; // Set only if isGameOver is true
 
     // Context
     std::string lastActionDescription; // Description of the last successful action
