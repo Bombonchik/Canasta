@@ -12,6 +12,7 @@
 #include <cereal/access.hpp>
 #include <cassert>
 #include <optional>
+#include "spdlog/spdlog.h"
 
 
 using Status = std::expected<void, std::string>;
@@ -309,12 +310,7 @@ Status Meld<R>::checkCardsAddition(const std::vector<Card>& cards) const {
 // Implementation of Meld<R>::updateCanastaStatus
 template <Rank R>
 void Meld<R>::updateCanastaStatus() {
-    if (isCanasta) {
-        return;
-    }
-    if (naturalCards.size() + wildCards.size() >= 7) {
-        isCanasta = true;
-    }
+    isCanasta = naturalCards.size() + wildCards.size() >= 7;
 }
 
 // Implementation of Meld<R>::getCanastaType
@@ -341,20 +337,25 @@ template <Rank R>
 void Meld<R>::updatePoints() {
     int calculatedPoints = 0;
     for (const auto& card : naturalCards) {
-        points += card.getPoints();
+        calculatedPoints += card.getPoints();
+        spdlog::debug("Adding points for card {}: {}",
+            card.toString(), card.getPoints());
     }
     for (const auto& card : wildCards) {
-        points += card.getPoints();
+        calculatedPoints += card.getPoints();
+        spdlog::debug("Adding points for card {}: {}",
+            card.toString(), card.getPoints());
     }
     if (isCanasta) {
         if (const auto canastaType = getCanastaType(); canastaType.has_value()) {
             if (*canastaType == CanastaType::Natural)
-                points += NATURAL_CANASTA_BONUS; // 500 points for a natural canasta
+                calculatedPoints += NATURAL_CANASTA_BONUS; // 500 points for a natural canasta
             else if (*canastaType == CanastaType::Mixed)
-                points += MIXED_CANASTA_BONUS; // 300 points for a mixed canasta
+                calculatedPoints += MIXED_CANASTA_BONUS; // 300 points for a mixed canasta
         }
     }
     points = calculatedPoints;
+    spdlog::debug("Meld points updated: {}", points);
 }
 
 // Implementation of Meld<R>::isCorrectNaturalList
