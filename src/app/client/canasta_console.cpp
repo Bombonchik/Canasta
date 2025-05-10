@@ -41,8 +41,8 @@ void CanastaConsole::printSpace(std::size_t count) {
 
 void CanastaConsole::clear() {
     // ANSI: clear screen and move cursor home
-    std::cout << "\x1b[2J\x1b[H";
-    std::cout.flush();
+    // std::cout << "\x1b[2J\x1b[H";
+    // std::cout.flush();
 #ifdef _WIN32
     system("cls");
 #else

@@ -216,7 +216,7 @@ std::expected<MeldCommitment, std::string> RuleEngine::checkTakingDiscardPile(
     
     // Pile is frozen
     if (isPileFrozen) {
-        if (hasCardsWithRank && meld && !meld->isInitialized()) {
+        if (hasCardsWithRank && meld && meld->isInitialized()) {
             return MeldCommitment{
                 MeldCommitmentType::AddToExisting,
                 topDiscardCardRank,
