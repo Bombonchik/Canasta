@@ -9,6 +9,12 @@ find_package(SQLiteCpp REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(asio REQUIRED)
 find_package(cereal REQUIRED)
+find_package(FTXUI REQUIRED
+    COMPONENTS
+    screen
+    dom
+    component
+)
 
 # --- Core Game Logic Library ---
 add_library(canasta_core STATIC
@@ -74,6 +80,9 @@ add_executable(canasta_client
     app/client/client_main.cpp
     app/client/client_network.cpp
     app/client/canasta_console.cpp
+    app/client/input_guard.cpp
+    app/client/game_view.cpp
+    app/client/client_controller.cpp
 )
 
 # Specify include directory for the client
@@ -84,5 +93,8 @@ target_link_libraries(canasta_client PRIVATE
     canasta_core
     spdlog::spdlog
     asio::asio
+    ftxui::screen
+    ftxui::dom
+    ftxui::component
     # cereal::cereal is inherited via canasta_core PUBLIC link
 )
