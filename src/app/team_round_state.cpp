@@ -82,7 +82,7 @@ bool TeamRoundState::hasMadeInitialRankMeld() const {
 // Calculate the total points from the team's melds
 int TeamRoundState::calculateMeldPoints() const {
     // Use std::accumulate to sum the points from each meld
-    return std::accumulate(melds.begin(), melds.end(), 0,
+    return std::accumulate(melds.begin() + 1, melds.end(), 0, // skip red three meld
         [](int sum, const std::unique_ptr<BaseMeld>& meldPtr) {
             // Add the points from the current meld (if the pointer is valid)
             return sum + (meldPtr && meldPtr->isInitialized() ? meldPtr->getPoints() : 0);
