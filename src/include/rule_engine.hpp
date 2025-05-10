@@ -51,7 +51,7 @@ enum class GameOutcome {
     Team1Wins,    // Team 1 has more points and has reached the win threshold
     Team2Wins,    // Team 2 has more points and has reached the win threshold
     Draw          // Both have reached the threshold with exactly equal scores
-};
+}; 
 
 /**
  * @brief Defines the possible outcomes of handling a player action within a turn.
@@ -82,10 +82,11 @@ public:
     // Define canasta requirements (can be adjusted based on rules)
     static constexpr int MIN_CANASTAS_TO_GO_OUT = 1; // Example: At least one canasta needed
 
-    static constexpr int WINNING_SCORE = 5000;
+    //static constexpr int WINNING_SCORE = 5000;
+    static constexpr int WINNING_SCORE = 3000; // just for testing 
 
-    static constexpr std::size_t INITIALIZE_COMMITMENT_COUNT = 2 + 1; // 2 cards from hand + top card from pile
-    static constexpr std::size_t ADD_COMMITMENT_COUNT = 1; // top card from pile
+    static constexpr std::size_t STRICT_COMMITMENT_COUNT = 2 + 1; // 2 cards from hand + top card from pile both for initializing or adding to a meld
+    static constexpr std::size_t EASY_COMMITMENT_COUNT = 1; // top card from pile for adding to a meld
 
     static std::expected<int, std::string> validateRankMeldInitializationProposals(
         const std::vector<RankMeldProposal>& proposals);
