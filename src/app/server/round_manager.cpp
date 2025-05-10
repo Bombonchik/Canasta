@@ -112,6 +112,7 @@ TurnActionResult RoundManager::handleRevertRequest() {
     if (roundPhase != RoundPhase::InProgress || !currentTurnManager) {
         return {TurnActionStatus::Error_InvalidAction, "Not player's turn or round not in progress."};
     }
+    spdlog::debug("Handling revert request for player: {}", getCurrentPlayer().getName());
     TurnActionResult result = currentTurnManager->handleRevert();
     // Revert doesn't end the turn, so no processTurnResult call needed immediately.
     return result;
@@ -220,8 +221,8 @@ void RoundManager::processTurnResult(const TurnActionResult& result) {
 
         case TurnActionStatus::Success_WentOut:
             if (roundPhase == RoundPhase::InProgress) { // Ensure we only process 'went out' once
-                roundPhase = RoundPhase::Finished; // Player went out
                 playerWhoWentOut = getCurrentPlayer(); // Store who went out
+                roundPhase = RoundPhase::Finished; // Player went out
                 currentTurnManager.reset(); // Turn manager no longer needed
             }
             break;
@@ -298,17 +299,38 @@ ClientDeck RoundManager::getClientDeck() const {
     };
 }
 
-std::vector<PlayerPublicInfo> RoundManager::getAllPlayersPublicInfo() const {
-    std::vector<PlayerPublicInfo> playerInfos;
-    for (const auto& playerRef : playersInTurnOrder) {
-        const Player& player = playerRef.get();
-        playerInfos.push_back({
-            player.getName(),
-            player.getHand().cardCount(),
-            player.getName() == getCurrentPlayer().getName()
+std::vector<PlayerPublicInfo> RoundManager::getAllPlayersPublicInfo(const Player& me) const {
+    // 1) Copy the turn order (we’ll rotate this copy)
+    std::vector<std::reference_wrapper<Player>> order = playersInTurnOrder;
+
+    // 2) Find the iterator whose player name matches me.getName()
+    auto it = std::find_if(order.begin(), order.end(),
+        [&](const std::reference_wrapper<Player>& ref) {
+            return ref.get().getName() == me.getName();
+        });
+
+    if (it == order.end()) {
+        throw std::logic_error(
+            "getAllPlayersPublicInfo: player '" + me.getName() + "' not in turn order"
+        );
+    }
+
+    // 3) Rotate so that 'me' is first
+    std::rotate(order.begin(), it, order.end());
+
+    // 4) Build the result vector
+    std::vector<PlayerPublicInfo> infos;
+    auto currentPlayerName = roundPhase == RoundPhase::InProgress ? getCurrentPlayer().getName() : "";
+    infos.reserve(order.size());
+    for (auto& pref : order) {
+        const Player& p = pref.get();
+        infos.push_back({
+            p.getName(),
+            p.getHand().cardCount(),
+            p.getName() == currentPlayerName
         });
     }
-    return playerInfos;
+    return infos;
 }
 
 TeamRoundState RoundManager::getTeamStateForTeam(const Team& team) const {

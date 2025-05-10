@@ -102,7 +102,12 @@ public:
 
     ClientDeck getClientDeck() const;
 
-    std::vector<PlayerPublicInfo> getAllPlayersPublicInfo() const;
+    /**
+     * @brief Gets the public information of all players in the game.
+     * @param me The player requesting their own public info.
+     * @return A vector of PlayerPublicInfo objects for all players shifted to the current player's perspective.
+     */
+    std::vector<PlayerPublicInfo> getAllPlayersPublicInfo(const Player& me) const;
 
     TeamRoundState getTeamStateForTeam(const Team& team) const;
 
