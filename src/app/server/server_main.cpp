@@ -27,17 +27,6 @@
 // Server constants
 constexpr int PORT = 12345;
 
-struct ServerData {
-    GameState gameState;
-    std::vector<std::shared_ptr<asio::ip::tcp::socket>> clients;
-    std::mutex stateMutex;
-    std::mutex clientsMutex;
-    std::shared_ptr<asio::io_context> io_context; // Add the io_context here
-
-    ServerData() : io_context(std::make_shared<asio::io_context>()) {} // Initialize io_context
-};
-
-
 // Launch a terminal for each player
 void launchTerminal(int playerIndex) {
     std::string command;
@@ -55,114 +44,27 @@ void launchTerminal(int playerIndex) {
     system(command.c_str());
 }
 
-void detectOSAndLaunchTerminals(int numPlayers) {
-    for (int i = 0; i < numPlayers; ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Add delay to ensure terminals launch correctly
+void detectOSAndLaunchTerminals(int playersCount) {
+    spdlog::info("Launching {} player terminals…", playersCount);
+    for (int i = 0; i < playersCount; ++i) {
         launchTerminal(i);
+        // slight stagger so they don’t all hammer the server simultaneously
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
-// Broadcast the game state to all connected clients
-void broadcastGameState(ServerData& serverData) {
-    std::ostringstream os;
-    {
-        cereal::BinaryOutputArchive archive(os);
-        archive(serverData.gameState);
-    }
-    std::string serializedData = os.str() + "\n";
-
-    std::lock_guard<std::mutex> lock(serverData.clientsMutex);
-    for (const auto& client : serverData.clients) {
-        asio::write(*client, asio::buffer(serializedData));
-    }
-}
-
-// Handle a single client's connection
-void handleClient(std::shared_ptr<asio::ip::tcp::socket> socket, ServerData& serverData) {
-    try {
-        spdlog::info("Client connected: {}", socket->remote_endpoint().address().to_string());
-        while (true) {
-            asio::streambuf buf;
-            asio::read_until(*socket, buf, '\n');
-            std::istream is(&buf);
-            GameState updatedState;
-            {
-                cereal::BinaryInputArchive archive(is);
-                archive(updatedState);
-            }
-
-            {
-                std::lock_guard<std::mutex> lock(serverData.stateMutex);
-                serverData.gameState = updatedState;
-            }
-
-            spdlog::info("Game state updated by Player {}: {}", updatedState.currentPlayer, updatedState.publicMessage);
-            broadcastGameState(serverData);
-        }
-    } catch (const std::exception& e) {
-        spdlog::error("Client disconnected: {}", e.what());
-        std::lock_guard<std::mutex> lock(serverData.clientsMutex);
-        serverData.clients.erase(std::remove(serverData.clients.begin(), serverData.clients.end(), socket), serverData.clients.end());
-    }
-}
-
-// Start the server and propagate the initial game state
-void startServer(ServerData& serverData, int numPlayers) {
-    asio::ip::tcp::acceptor acceptor(*serverData.io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), PORT));
-
-
-    spdlog::info("Server started on port {}", PORT);
-
-    for (int i = 0; i < numPlayers; ++i) {
-        auto socket = std::make_shared<asio::ip::tcp::socket>(*serverData.io_context);
-        acceptor.accept(*socket);
-
-        spdlog::info("Player {} connected.", i + 1);
-
-        // Add the player to the clients vector
-        {
-            std::lock_guard<std::mutex> lock(serverData.clientsMutex);
-            serverData.clients.push_back(socket);
-        }
-
-        // Propagate the initial game state to the connected client
-        spdlog::info("Sending initial game state to Player {}", i + 1);
-        std::ostringstream os;
-        {
-            cereal::BinaryOutputArchive archive(os);
-            archive(serverData.gameState);
-        }
-        std::string serializedData = os.str() + "\n";
-        asio::write(*socket, asio::buffer(serializedData));
-
-        // Launch a thread to handle the client
-        std::thread(handleClient, socket, std::ref(serverData)).detach();
-    }
-    // Do not block here, but keep io_context running in a separate thread
-    std::thread([io_context = serverData.io_context] {
-        io_context->run(); // Keep io_context alive for handling async operations
-    }).detach();
-}
-
-void oldMain() {
-    ServerData serverData;
-    serverData.gameState = GameState{0, "Welcome to the game!"};
-
-    int playersCount = 4;
-    spdlog::info("Starting the network server...");
-    startServer(serverData, playersCount);
-
-    // Keep the main thread alive
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-}
-
-
-int main() {
+int main(int argc, char* argv[]) {
     initLogger();
+    if (argc < 2) {
+        spdlog::error("Number of players not specified!");
+        return 1;
+    }
+    int playersCount = std::stoi(argv[1]);
+    if (playersCount != 2 && playersCount != 4) {
+        spdlog::error("Invalid number of players. Must be either 2 or 4.");
+        return 1;
+    }
     spdlog::info("----------Canasta Server is starting----------");
-    int playersCount = 4;
 
     try {
         // 3) construct the core game manager
@@ -179,12 +81,7 @@ int main() {
         server.startAccept();
 
         // 6) fire up each client in its own terminal window
-        spdlog::info("Launching {} player terminals…", playersCount);
-        for (int i = 0; i < playersCount; ++i) {
-            launchTerminal(i);
-            // slight stagger so they don’t all hammer the server simultaneously
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        }
+        detectOSAndLaunchTerminals(playersCount);
 
         // 7) run the ASIO loop (this will block until you call ioContext.stop())
         ioContext.run();
