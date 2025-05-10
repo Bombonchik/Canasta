@@ -15,11 +15,11 @@ inline ClientGameState makeClientGameState(
     ClientGameState s;
     s.deckState = roundManager.getClientDeck();
     s.myPlayerData = player;
-    s.allPlayersPublicInfo = roundManager.getAllPlayersPublicInfo();
+    s.allPlayersPublicInfo = roundManager.getAllPlayersPublicInfo(player);
     auto team1 = gameManager.getTeam1();
     auto team2 = gameManager.getTeam2();
     auto myTeam = team1.hasPlayer(player) ? team1 : team2;
-    auto opponentTeam = team2.hasPlayer(player) ? team2 : team1;
+    auto opponentTeam = team2.hasPlayer(player) ? team1 : team2;
     s.myTeamState = roundManager.getTeamStateForTeam(myTeam);
     s.opponentTeamState = roundManager.getTeamStateForTeam(opponentTeam);
     s.myTeamTotalScore = myTeam.getTotalScore();
@@ -32,7 +32,13 @@ inline ClientGameState makeClientGameState(
     }
     s.isGameOver = gameManager.isGameOver();
     if (s.isGameOver) {
-        s.gameOutcome = gameManager.getGameOutcome();
+        auto winningTeam = gameManager.getWinningTeam();
+        if (winningTeam.has_value()) {
+            s.gameOutcome = winningTeam->get().getName() == myTeam.getName() ? 
+            ClientGameOutcome::Win : ClientGameOutcome::Lose;
+        } else {
+            s.gameOutcome = ClientGameOutcome::Draw;
+        }
     }
     s.lastActionDescription = actionDescription;
     s.status = status;
