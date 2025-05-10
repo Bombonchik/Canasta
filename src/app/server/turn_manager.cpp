@@ -3,6 +3,7 @@
 #include <stdexcept> // For potential exceptions if needed
 #include <numeric>   // For std::accumulate if calculating points
 #include <cassert>
+#include "spdlog/spdlog.h" // For logging
 
 // --- Constructor ---
 
@@ -82,15 +83,19 @@ TurnActionResult TurnManager::handleTakeDiscardPile() {
     
 
     auto takeDiscardPileResult = serverDeck.get()
-        .takeDiscardPile(!teamHasInitialRankMeld);
+        .takeDiscardPile(true);
+        //.takeDiscardPile(!teamHasInitialRankMeld);
     if (!takeDiscardPileResult.has_value()) {
         return {
             TurnActionStatus::Error_InvalidAction,
             takeDiscardPileResult.error()
         };
     }
-    hand.get().addCards(takeDiscardPileResult.value(), !teamHasInitialRankMeld);
+    //hand.get().addCards(takeDiscardPileResult.value(), !teamHasInitialRankMeld);
+    hand.get().addCards(takeDiscardPileResult.value(), true);
 
+    spdlog::debug("Setting meld commitment to meld commitment: rank {} cound {} type {}", to_string(checkTakingDiscardPileResult.value().rank),
+        checkTakingDiscardPileResult.value().count, static_cast<int>(checkTakingDiscardPileResult.value().type));
     commitment = checkTakingDiscardPileResult.value();
 
     tookDiscardPile = true; // Assume success for now
@@ -144,6 +149,14 @@ TurnActionResult TurnManager::handleMelds(const std::vector<MeldRequest>& meldRe
 
     auto canGoingOut = RuleEngine::canGoingOut(
         cardsPotentiallyLeftInHandCount, teamRoundState.get());
+
+    if (!canGoingOut && cardsPotentiallyLeftInHandCount == 0) { // wants to go out but can't
+        revertRankMeldActions(rankInitializationProposals, rankAdditionProposals);
+        return {
+            TurnActionStatus::Error_InvalidAction,
+            "You cannot go out."
+        };
+    }
 
     // Check if the black three initialization proposal is valid
     auto blackThreeInitializationStatus = processBlackThreeInitializationProposal(
@@ -220,11 +233,14 @@ TurnActionResult TurnManager::handleRevert() {
             TurnActionStatus::Error_InvalidAction,
             "You can only revert after taking the discard pile or handling melds."
         };
-    if (tookDiscardPile) {
-        revertTakeDiscardPileAction();
-    }
+    spdlog::debug("Reverting turn for player: {}", player.get().getName());
     if (meldsHandled) {
+        spdlog::debug("Reverting melds action");
         revertRankMeldActions(rankInitializationProposals, rankAdditionProposals);
+    }
+    if (tookDiscardPile) {
+        spdlog::debug("Reverting discard pile action");
+        revertTakeDiscardPileAction();
     }
     return {
         TurnActionStatus::Success_TurnContinues,
@@ -265,6 +281,11 @@ void TurnManager::processMeldRequests
     std::vector<RankMeldProposal>& additionProposals
 ) {
     for (const auto& request : meldRequests) {
+        spdlog::debug("Processing meld request of rank = {}",
+            request.addToRank.has_value() ? to_string(request.addToRank.value()) : "None");
+        for (const auto& card : request.cards) {
+            spdlog::debug("    Card: {}", card.toString());
+        }
         if (request.addToRank.has_value()) {
             additionProposals.push_back(RankMeldProposal{
                 request.cards,
@@ -323,6 +344,14 @@ std::expected<void, TurnActionResult> TurnManager::processRankInitializationProp
             TurnActionStatus::Error_InvalidMeld,
             "You must initialize at least one meld."
         });
+    for (std::size_t i = 0; i < rankInitializationProposals.size(); ++i) {
+        auto& proposal = rankInitializationProposals[i];
+        spdlog::debug("Processing meld proposal {}: cards = {}",
+            i + 1,proposal.cards.size());
+        for (const auto& card : proposal.cards) {
+            spdlog::debug("Card {}: {}", i + 1, card.toString());
+        }
+    }
     auto maybePoints = RuleEngine::validateRankMeldInitializationProposals(
         rankInitializationProposals
     );
@@ -331,7 +360,7 @@ std::expected<void, TurnActionResult> TurnManager::processRankInitializationProp
             TurnActionStatus::Error_InvalidMeld,
             maybePoints.error()
         });
-
+    spdlog::debug("Rank initialization proposals points: {}", maybePoints.value());
     if (!teamHasInitialRankMeld) {
         auto validateStatus = RuleEngine::validatePointsForInitialMelds(
             maybePoints.value(), teamTotalScore);
@@ -373,9 +402,7 @@ std::expected<void, TurnActionResult> TurnManager::processBlackThreeInitializati
 
 std::expected<void, TurnActionResult> TurnManager::processRankAdditionProposals
 (const std::vector<RankMeldProposal>& rankAdditionProposals) const {
-    if (rankAdditionProposals.empty())
-        return {}; // No rank addition proposals to process
-    if (!teamHasInitialRankMeld)
+    if (!teamHasInitialRankMeld && !rankAdditionProposals.empty())
         return std::unexpected(TurnActionResult{
             TurnActionStatus::Error_InvalidAction,
             "You cannot add to a meld without initial melds."
@@ -440,12 +467,17 @@ const MeldCommitment& initializationCommitment) const {
             TurnActionStatus::Error_InvalidMeld,
             "Meld with rank " + to_string(initializationCommitment.rank) + " not found."
         });
-    if (commitmentProposal->cards.size() < initializationCommitment.count)
+    std::size_t commitmentCardCount = 0;
+    for (const auto& card : commitmentProposal->cards) {
+        if (card.getRank() == initializationCommitment.rank)
+            commitmentCardCount++;
+    }
+    if (commitmentCardCount < initializationCommitment.count)
         return std::unexpected(TurnActionResult{
             TurnActionStatus::Error_InvalidMeld,
             "Meld with rank " + to_string(initializationCommitment.rank) +
             " must contain at least " + std::to_string(initializationCommitment.count) +
-            " cards."
+            " cards with rank " + to_string(initializationCommitment.rank) + "."
         });
     return {}; // Return success
 }
@@ -466,12 +498,17 @@ const MeldCommitment& addToExistingCommitment) const {
             "Card with rank " + to_string(addToExistingCommitment.rank) + 
             " was not added to the existing meld."
         });
-    if (commitmentProposal->cards.size() < addToExistingCommitment.count)
+    std::size_t commitmentCardCount = 0;
+    for (const auto& card : commitmentProposal->cards) {
+        if (card.getRank() == addToExistingCommitment.rank)
+            commitmentCardCount++;
+    }
+    if (commitmentCardCount < addToExistingCommitment.count)
         return std::unexpected(TurnActionResult{
             TurnActionStatus::Error_InvalidMeld,
             "You should add to meld with rank " + to_string(addToExistingCommitment.rank) +
             " at least " + std::to_string(addToExistingCommitment.count) +
-            " cards."
+            " cards with rank " + to_string(addToExistingCommitment.rank) + "."
         });
     return {}; // Return success
 }
@@ -556,8 +593,9 @@ void TurnManager::initializeBlackThreeMeld(
 void TurnManager::revertTakeDiscardPileAction() {
     assert(tookDiscardPile && "Invariant violated: tookDiscardPile should be true here");
     
-    hand.get().revertAddCards(); // Revert the hand state
     serverDeck.get().revertTakeDiscardPile(); // Revert the discard pile action
+    hand.get().revertAddCards(); // Revert the hand state
+    commitment.reset(); // Reset the commitment
 
     tookDiscardPile = false;
 }
