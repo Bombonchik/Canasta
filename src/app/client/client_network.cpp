@@ -33,7 +33,7 @@ void ClientNetwork::connect(const std::string& host, const std::string& port, co
         spdlog::warn("Already connected or connecting.");
         return;
     }
-    spdlog::info("Attempting to connect to {}:{} as '{}'", host, port, playerName);
+    //spdlog::debug("Attempting to connect to {}:{} as '{}'", host, port, playerName);
     // Start the asynchronous resolve operation.
     doResolve(host, port, playerName);
 }
@@ -84,12 +84,12 @@ void ClientNetwork::sendTakeDiscardPile() {
     queueMessage(ClientMessageType::TakeDiscardPile);
 }
 
-void ClientNetwork::sendMeld(const std::vector<MeldRequest>& requests) {
+void ClientNetwork::sendMeld(std::vector<MeldRequest> requests) {
     spdlog::debug("Queueing Meld request.");
     queueMessage(ClientMessageType::Meld, requests);
 }
 
-void ClientNetwork::sendDiscard(const Card& card) {
+void ClientNetwork::sendDiscard(Card card) {
     spdlog::debug("Queueing Discard request for card: {}", card.toString());
     queueMessage(ClientMessageType::Discard, card);
 }
@@ -153,7 +153,7 @@ void ClientNetwork::doConnect(const asio::ip::tcp::resolver::results_type& endpo
 
 void ClientNetwork::handleConnect(const asio::error_code& ec, const std::string& playerName) {
     if (!ec) {
-        spdlog::info("Connection successful to {}.", socket.remote_endpoint().address().to_string());
+        //spdlog::debug("Connection successful");
         connected = true; // Mark as connected
         clientPlayerName = playerName; // Store player name
 
@@ -316,7 +316,7 @@ void ClientNetwork::processMessage() {
                 break;
             }
             case ServerMessageType::LoginSuccess: {
-                spdlog::info("Login successful for player '{}'", clientPlayerName);
+                spdlog::debug("Login successful for player '{}'", clientPlayerName);
                 invokeLoginSuccessCallback();
                 break;
             }

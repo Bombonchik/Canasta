@@ -68,8 +68,8 @@ public:
 
     void sendDrawDeck();
     void sendTakeDiscardPile();
-    void sendMeld(const std::vector<MeldRequest>& requests);
-    void sendDiscard(const Card& card);
+    void sendMeld(std::vector<MeldRequest> requests);
+    void sendDiscard(Card card);
     void sendRevert();
 
     // --- Setting Callbacks ---
