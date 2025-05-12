@@ -452,6 +452,134 @@ void GameView::showStaticBoardWithMessages(
     << std::flush;
 }
 
+Element GameView::makeScoreInfo(int myTeamTotalScore, int opponentTeamTotalScore,
+    int myTeamMeldPoints, int opponentTeamMeldPoints, Color textColor1, Color textColor2) {
+    return vbox({
+        hbox({
+            text("Total Score: ") | bold,
+            text(std::to_string(myTeamTotalScore)) | bold | color(textColor1),
+            text(" vs ") | bold,
+            text(std::to_string(opponentTeamTotalScore)) | bold | color(textColor2),
+        }),
+        hbox({
+            text("Meld Points: ") | bold,
+            text(std::to_string(myTeamMeldPoints)) | bold | color(textColor1),
+            text(" vs ") | bold,
+            text(std::to_string(opponentTeamMeldPoints)) | bold | color(textColor2),
+        }),
+    });
+}
+
+Element GameView::makePlayerInfo(const PlayerPublicInfo& player) {
+    return hbox({
+        text(player.name) | bold | (player.isCurrentTurn ? color(Color::Cyan) : color(Color::White)),
+        text(", " + std::to_string(player.handCardCount)) | bold | (player.isCurrentTurn ? color(Color::Cyan) : color(Color::White)),
+    });
+}
+
+
+void GameView::showStaticScore(const ScoreState& scoreState) {
+    console.clear();
+    disableInput();
+
+    // 2) References to your two score‐breakdowns
+    const auto& sb  = scoreState.myTeamScoreBreakdown;
+    const auto& osb = scoreState.opponentTeamScoreBreakdown;
+
+    // 3) Build a grid of Elements: each inner vector is a row
+    std::vector<Element> columnNames;
+    std::vector<Element> team1Scores;
+    std::vector<Element> team2Scores;
+
+    // Helper to add a row
+    auto addRow = [&](const std::string& label, int left, int right) {
+        Color leftColor, rightColor;
+        if (left < 0)
+            leftColor = Color::Red;
+        else 
+            leftColor = Color::Default;
+        if (right < 0)
+            rightColor = Color::Red;
+        else
+            rightColor = Color::Default;
+
+        // Column 1: label, left‐aligned by default
+        columnNames.push_back(text(label) | bold);
+        // Column 2: your team score
+        team1Scores.push_back(text(std::to_string(left))
+        | color(leftColor) | align_right | bold);
+        // Column 3: opponent score
+        team2Scores.push_back(text(std::to_string(right))
+        | color(rightColor) | align_right | bold);
+    };
+
+    // 4) Populate all the rows in the exact order you want
+    addRow("Natural",     sb.naturalCanastaBonus,   osb.naturalCanastaBonus);
+    addRow("Mixed",       sb.mixedCanastaBonus,     osb.mixedCanastaBonus);
+    addRow("Melded",      sb.meldedCardsPoints,     osb.meldedCardsPoints);
+    addRow("Red threes",  sb.redThreeBonusPoints,   osb.redThreeBonusPoints);
+    addRow("On hands",    sb.handPenaltyPoints,     osb.handPenaltyPoints);
+    addRow("Going out",   sb.goingOutBonus,         osb.goingOutBonus);
+
+    // Round total & Game total (bold)
+    addRow("Round Total", sb.calculateTotal(), osb.calculateTotal());
+
+    addRow("Game Total",
+        scoreState.myTeamTotalScore,
+        scoreState.opponentTeamTotalScore
+    );
+
+    std::string outcome;
+    // Optional outcome line
+    if (scoreState.isGameOver && scoreState.gameOutcome.has_value()) {
+        if (scoreState.playersCount == 2) {
+        if (*scoreState.gameOutcome == ClientGameOutcome::Win)
+            outcome = "You win!";
+        else if (*scoreState.gameOutcome == ClientGameOutcome::Lose)
+            outcome = "You lose";
+        else
+            outcome = "Draw";
+        } else {
+        if (*scoreState.gameOutcome == ClientGameOutcome::Win)
+            outcome = "Your team wins!";
+        else if (*scoreState.gameOutcome == ClientGameOutcome::Lose)
+            outcome = "Your team loses";
+        else
+            outcome = "Draw";
+        }
+    } else {
+        outcome = "Waiting for next round...";
+    }
+    
+    auto table = hbox({
+        vbox(std::move(columnNames)),
+        filler(),
+        vbox(std::move(team1Scores)) | center,
+        filler(),
+        vbox(std::move(team2Scores)) | align_right,
+    })| size(WIDTH, GREATER_THAN, 25);
+
+    auto outcomeLine = text(outcome) | bold | center;
+    Element document = vbox({
+            table,
+            separator(),
+            outcomeLine,
+    }) | center | border 
+    | size(HEIGHT, GREATER_THAN, (int)columnNames.size() + 2)
+    | center;
+
+    // 5) One-shot render into a virtual Screen
+    auto screenBuff = Screen::Create(
+        Dimension::Full(),
+        Dimension::Fit(document)
+    );
+    Render(screenBuff, document);
+    std::cout << screenBuff.ResetPosition()
+                << screenBuff.ToString()
+                << std::flush;
+    restoreInput(); // Restore terminal state
+}
+
 int GameView::promptChoiceWithBoard(
     const std::string& question,
     const std::vector<std::string>& options,
@@ -528,32 +656,6 @@ int GameView::promptChoiceWithBoard(
 
     screen.Loop(component);
     return selected;
-}
-
-
-Element GameView::makeScoreInfo(int myTeamTotalScore, int opponentTeamTotalScore,
-    int myTeamMeldPoints, int opponentTeamMeldPoints, Color textColor1, Color textColor2) {
-    return vbox({
-        hbox({
-            text("Total Score: ") | bold,
-            text(std::to_string(myTeamTotalScore)) | bold | color(textColor1),
-            text(" vs ") | bold,
-            text(std::to_string(opponentTeamTotalScore)) | bold | color(textColor2),
-        }),
-        hbox({
-            text("Meld Points: ") | bold,
-            text(std::to_string(myTeamMeldPoints)) | bold | color(textColor1),
-            text(" vs ") | bold,
-            text(std::to_string(opponentTeamMeldPoints)) | bold | color(textColor2),
-        }),
-    });
-}
-
-Element GameView::makePlayerInfo(const PlayerPublicInfo& player) {
-    return hbox({
-        text(player.name) | bold | (player.isCurrentTurn ? color(Color::Cyan) : color(Color::White)),
-        text(", " + std::to_string(player.handCardCount)) | bold | (player.isCurrentTurn ? color(Color::Cyan) : color(Color::White)),
-    });
 }
 
 std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
@@ -898,105 +1000,4 @@ Card GameView::runDiscardWizard(const BoardState& boardState) {
 
     screen.Loop(component);
     return result.value();  // always set by Enter in PICK_CARD
-}
-
-void GameView::showStaticScore(const ScoreState& scoreState) {
-    console.clear();
-    disableInput();
-
-    // 2) References to your two score‐breakdowns
-    const auto& sb  = scoreState.myTeamScoreBreakdown;
-    const auto& osb = scoreState.opponentTeamScoreBreakdown;
-
-    // 3) Build a grid of Elements: each inner vector is a row
-    std::vector<Element> columnNames;
-    std::vector<Element> team1Scores;
-    std::vector<Element> team2Scores;
-
-    // Helper to add a row
-    auto addRow = [&](const std::string& label, int left, int right) {
-        Color leftColor, rightColor;
-        if (left < 0)
-            leftColor = Color::Red;
-        else 
-            leftColor = Color::Default;
-        if (right < 0)
-            rightColor = Color::Red;
-        else
-            rightColor = Color::Default;
-
-        // Column 1: label, left‐aligned by default
-        columnNames.push_back(text(label) | bold);
-        // Column 2: your team score
-        team1Scores.push_back(text(std::to_string(left))
-        | color(leftColor) | align_right | bold);
-        // Column 3: opponent score
-        team2Scores.push_back(text(std::to_string(right))
-        | color(rightColor) | align_right | bold);
-    };
-
-    // 4) Populate all the rows in the exact order you want
-    addRow("Natural",     sb.naturalCanastaBonus,   osb.naturalCanastaBonus);
-    addRow("Mixed",       sb.mixedCanastaBonus,     osb.mixedCanastaBonus);
-    addRow("Melded",      sb.meldedCardsPoints,     osb.meldedCardsPoints);
-    addRow("Red threes",  sb.redThreeBonusPoints,   osb.redThreeBonusPoints);
-    addRow("On hands",    sb.handPenaltyPoints,     osb.handPenaltyPoints);
-    addRow("Going out",   sb.goingOutBonus,         osb.goingOutBonus);
-
-    // Round total & Game total (bold)
-    addRow("Round Total", sb.calculateTotal(), osb.calculateTotal());
-
-    addRow("Game Total",
-        scoreState.myTeamTotalScore,
-        scoreState.opponentTeamTotalScore
-    );
-
-    std::string outcome;
-    // Optional outcome line
-    if (scoreState.isGameOver && scoreState.gameOutcome.has_value()) {
-        if (scoreState.playersCount == 2) {
-        if (*scoreState.gameOutcome == ClientGameOutcome::Win)
-            outcome = "You win!";
-        else if (*scoreState.gameOutcome == ClientGameOutcome::Lose)
-            outcome = "You lose";
-        else
-            outcome = "Draw";
-        } else {
-        if (*scoreState.gameOutcome == ClientGameOutcome::Win)
-            outcome = "Your team wins!";
-        else if (*scoreState.gameOutcome == ClientGameOutcome::Lose)
-            outcome = "Your team loses";
-        else
-            outcome = "Draw";
-        }
-    } else {
-        outcome = "Waiting for next round...";
-    }
-    
-    auto table = hbox({
-        vbox(std::move(columnNames)),
-        filler(),
-        vbox(std::move(team1Scores)) | center,
-        filler(),
-        vbox(std::move(team2Scores)) | align_right,
-    })| size(WIDTH, GREATER_THAN, 25);
-
-    auto outcomeLine = text(outcome) | bold | center;
-    Element document = vbox({
-            table,
-            separator(),
-            outcomeLine,
-    }) | center | border 
-    | size(HEIGHT, GREATER_THAN, (int)columnNames.size() + 2)
-    | center;
-
-    // 5) One-shot render into a virtual Screen
-    auto screenBuff = Screen::Create(
-        Dimension::Full(),
-        Dimension::Fit(document)
-    );
-    Render(screenBuff, document);
-    std::cout << screenBuff.ResetPosition()
-                << screenBuff.ToString()
-                << std::flush;
 }
