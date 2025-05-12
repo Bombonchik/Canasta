@@ -16,16 +16,6 @@
 #include <cereal/types/string.hpp>
 #include <cereal/types/optional.hpp>
 
-struct GameState {
-    int currentPlayer;
-    std::string publicMessage;
-
-    template <class Archive>
-    void serialize(Archive& archive) {
-        archive(currentPlayer, publicMessage);
-    }
-};
-
 enum class ClientGameOutcome {
     Win,
     Lose,
