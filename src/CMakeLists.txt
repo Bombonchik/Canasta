@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.28)
 project(MyCanastaGame)
 
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}/generators")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}/generators")
+
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find required packages
-find_package(SQLiteCpp REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(asio REQUIRED)
 find_package(cereal REQUIRED)
@@ -55,25 +57,11 @@ target_include_directories(canasta_server PRIVATE include)
 # Link server against core library and dependencies
 target_link_libraries(canasta_server PRIVATE
     canasta_core
-    SQLiteCpp       # Only server needs DB?
     spdlog::spdlog
     asio::asio
     # cereal::cereal is inherited via canasta_core PUBLIC link
 )
 
-# Enable AddressSanitizer on just the server target (for debug builds)
-# if(CMAKE_BUILD_TYPE MATCHES Debug)
-#     message(STATUS "Building canasta_server with AddressSanitizer")
-#     target_compile_options(canasta_server PRIVATE
-#         -g                         # debug symbols
-#         -O1                        # optimise modestly for ASan
-#         -fsanitize=address
-#         -fno-omit-frame-pointer
-#     )
-#     target_link_libraries(canasta_server PRIVATE
-#         -fsanitize=address
-#     )
-# endif()
 
 # --- Client Executable ---
 add_executable(canasta_client

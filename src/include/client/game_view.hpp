@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include <atomic>
-#include "fmt/format.h"
 #include <algorithm>
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/component/component.hpp>

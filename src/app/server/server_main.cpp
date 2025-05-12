@@ -6,7 +6,6 @@
 #include <thread>
 #include <chrono>
 #include <sstream>
-#include "SQLiteCpp/SQLiteCpp.h"
 #include "spdlog/spdlog.h"
 #include "asio.hpp"
 #include "cereal/archives/binary.hpp"

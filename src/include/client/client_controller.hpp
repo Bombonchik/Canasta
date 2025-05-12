@@ -50,8 +50,6 @@ private:
     ActionAttemptStatus takeDiscardPileAttemptStatus;
     ActionAttemptStatus meldAttemptStatus;
     ActionAttemptStatus discardAttemptStatus;
-    // Potentially, a status for 'revert' if it's a distinct action to track
-    // ActionAttemptStatus revertAttemptStatus;
 
     // Helper to reset action statuses, e.g., at the start of a new turn or after a revert.
     void resetTurnActionStatuses();
@@ -77,7 +75,6 @@ private:
     void processMelding(ActionAttemptStatus& previousAttemptStatus);
     void processRevert();
     void processDiscard();
-    // void promptAndProcessRevert(); // If revert needs specific prompting
 
     // Internal helper to setup callbacks on ClientNetwork
     void setupNetworkCallbacks();
