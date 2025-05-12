@@ -9,21 +9,15 @@ ClientController::ClientController(std::shared_ptr<ClientNetwork> clientNetwork,
     : network(clientNetwork), view(gameView), localPlayerName("") {
     resetTurnActionStatuses();
     setupNetworkCallbacks();
-    // std::cout << "ClientController initialized." << std::endl; // Placeholder
 }
 
 void ClientController::connect(const std::string& host, const std::string& port) {
-    // std::cout << "Attempting to connect to " << host << ":" << port << std::endl; // Placeholder
     std::string playerNamePlaceholder = "Player"; // Default or last used name
     localPlayerName = view.promptString("Enter your player name:", playerNamePlaceholder);
 
-    if (localPlayerName.empty()) {
-        //std::cout << "Connection cancelled: Player name cannot be empty." << std::endl; // Placeholder
-        // Potentially re-prompt or offer to exit
+    if (localPlayerName.empty())
         return;
-    }
 
-    // view.showStaticMessage(fmt::format("Connecting as {}...", localPlayerName)); // Placeholder
     network->connect(host, port, localPlayerName);
 }
 
@@ -38,7 +32,6 @@ void ClientController::setupNetworkCallbacks() {
         [this](const std::string& reason) { this->handleLoginFailure(reason); });
     network->setOnDisconnect(
         [this]() { this->handleDisconnect(); });
-    // std::cout << "ClientNetwork callbacks set up." << std::endl; // Placeholder
 }
 
 void ClientController::resetTurnActionStatuses() {
@@ -46,7 +39,6 @@ void ClientController::resetTurnActionStatuses() {
     takeDiscardPileAttemptStatus = ActionAttemptStatus::NotAttempted;
     meldAttemptStatus = ActionAttemptStatus::NotAttempted;
     discardAttemptStatus = ActionAttemptStatus::NotAttempted;
-    // std::cout << "Turn action statuses reset." << std::endl; // Placeholder
 }
 
 std::vector<MeldView> ClientController::getMeldViewsFromTeamRoundState(const TeamRoundState& teamRoundState) const {
@@ -142,7 +134,6 @@ void ClientController::handleActionError(const ActionError& error) {
     } else {
         throw std::runtime_error("ActionError occurred but no action was in progress.");
     }
-    //processPlayerTurn(error.message);
 
     view.restoreInput();
     if (meldAttemptStatus == ActionAttemptStatus::Succeeded) {
@@ -160,18 +151,15 @@ void ClientController::handleActionError(const ActionError& error) {
 }
 
 void ClientController::handleLoginSuccess() {
-    //std::cout << "[ClientController] Login Successful for " << localPlayerName << std::endl; // Placeholder
     resetTurnActionStatuses(); // Good place to ensure fresh start
 }
 
 void ClientController::handleLoginFailure(const std::string& reason) {
-    // view.showError(fmt::format("Login failed: {}", reason));
     std::cout << "[ClientController] Login Failed: " << reason << std::endl; // Placeholder
     localPlayerName = ""; // Clear player name on login failure
 }
 
 void ClientController::handleDisconnect() {
-    // view.showError("Disconnected from server.");
     std::cout << "[ClientController] Disconnected from server." << std::endl; // Placeholder
     resetTurnActionStatuses(); // Reset statuses
 }
@@ -197,7 +185,6 @@ void ClientController::processPlayerTurn(std::optional<const std::string> messag
                 takeDiscardPileAttemptStatus == ActionAttemptStatus::NotAttempted) {
         return promptAndProcessDrawCardOrTakeDiscardPile(message);
     }
-    std::cout << "[ClientController] Processing player turn for " << localPlayerName << std::endl; // Placeholder
 }
 
 void ClientController::promptAndProcessDrawCardOrTakeDiscardPile
@@ -211,7 +198,6 @@ void ClientController::promptAndProcessDrawCardOrTakeDiscardPile
         takeDiscardPileAttemptStatus = ActionAttemptStatus::Attempting;
         network->sendTakeDiscardPile();
     }
-    //std::cout << "[ClientController] Prompting and processing draw." << std::endl; // Placeholder
 }
 
 void ClientController::processAfterDrawing(std::optional<const std::string> message) {
@@ -251,7 +237,6 @@ void ClientController::processMelding(ActionAttemptStatus& previousAttemptStatus
 
     meldAttemptStatus = ActionAttemptStatus::Attempting;
     network->sendMeld(meldRequests);
-    //std::cout << "[ClientController] Processing meld." << std::endl; // Placeholder
 }
 
 void ClientController::processAfterMelding(std::optional<const std::string> message) {
@@ -268,7 +253,6 @@ void ClientController::processDiscard() {
     Card cardToDiscard = view.runDiscardWizard(currentBoardState);
     discardAttemptStatus = ActionAttemptStatus::Attempting;
     network->sendDiscard(cardToDiscard);
-    //std::cout << "[ClientController] Processing discard." << std::endl; // Placeholder
 }
 
 void ClientController::processRevert() {
@@ -276,5 +260,4 @@ void ClientController::processRevert() {
     meldAttemptStatus = ActionAttemptStatus::NotAttempted;
     discardAttemptStatus = ActionAttemptStatus::NotAttempted;
     network->sendRevert();
-    //std::cout << "[ClientController] Processing revert." << std::endl; // Placeholder
 }
