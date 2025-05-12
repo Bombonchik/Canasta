@@ -91,12 +91,6 @@ private:
     Element makeMeldGrid(const std::vector<MeldView>& melds, Color frameColor);
     Element makePlayerInfo(const PlayerPublicInfo& player);
     void disableInput();
-
-    // Test functions
-    void printCard(const Card& card);
-    void printHand(const Hand& hand);
-    void printMeld(const std::vector<MeldView>& melds);
-    void ftxuiPrintMeld(const std::vector<MeldView>& melds);
 };
 
 #endif // GAME_VIEW_HPP

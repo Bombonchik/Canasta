@@ -3,8 +3,6 @@
 
 GameView::GameView(): console(), screen(ScreenInteractive::TerminalOutput()) {
     console.clear();
-    //console.print("Welcome to Canasta!", CanastaConsole::Color::BrightCyan, true);
-    //console.print("Initializing game view...", CanastaConsole::Color::BrightWhite, true);
 }
 
 Element GameView::makeBoard(const BoardState& boardState) {
@@ -110,159 +108,6 @@ Element GameView::makeMeldGrid(const std::vector<MeldView>& melds, Color frameCo
     return vbox(std::move(rows)) | border | color(frameColor);
 }
 
-void GameView::printCard(const Card& card) {
-    auto color = card.getColor() == CardColor::RED ? 
-    CanastaConsole::Color::BrightRed : CanastaConsole::Color::BrightWhite;
-    std::string cartToPrint = "";
-    auto rank = card.getRank();
-    if (rank == Rank::Joker) {
-        cartToPrint = "@";
-    } else if (rank >= Rank::Two && rank <= Rank::Nine) {
-        cartToPrint = std::to_string(static_cast<int>(rank));
-    } else if (rank == Rank::Ten) {
-        cartToPrint = "X";
-    } else if (rank == Rank::Jack) {
-        cartToPrint = "J";
-    } else if (rank == Rank::Queen) {
-        cartToPrint = "Q";
-    } else if (rank == Rank::King) {
-        cartToPrint = "K";
-    } else if (rank == Rank::Ace) {
-        cartToPrint = "A";
-    }
-    console.print(cartToPrint, color);
-}
-
-void GameView::printHand(const Hand& hand) {
-    console.print("Your Hand:", CanastaConsole::Color::BrightCyan, true);
-    auto cards = hand.getCards();
-    console.print(std::to_string(cards.size()), CanastaConsole::Color::BrightWhite, true);
-    if (cards.empty()) {
-        console.print("No cards in hand", CanastaConsole::Color::BrightWhite);
-        return;
-    }
-    auto currentRank = cards.front().getRank();
-    for (std::size_t i = 0; i < cards.size(); ++i) {
-        bool rankWas = false;
-        if (cards[i].getRank() == currentRank) {
-            rankWas = true;
-            printCard(cards[i]);
-            if (i < cards.size() - 1) {
-                ++i;
-            } else {
-                break;
-            }
-        }
-        while (cards[i].getRank() == currentRank && i < cards.size()) {
-            console.printSpace();
-            printCard(cards[i]);
-            ++i;
-        }
-        if (rankWas && i < cards.size()){
-            console.print("|");
-        }
-        currentRank = cards[i].getRank();
-        --i;
-    }
-    console.print("\n", CanastaConsole::Color::BrightCyan);
-}
-
-void GameView::printMeld(const std::vector<MeldView>& melds) {
-    console.print("Your Meld:", CanastaConsole::Color::BrightCyan, true);
-    for (std::size_t i = 0; i < 8; ++i) {
-        for (auto& meld : melds) {
-            if (!meld.isInitialized)
-                continue;
-            console.print("|");
-            if (meld.cards.size() >= 7 && i == 7) {
-                console.print("C");
-                continue;
-            }
-            if (i < meld.cards.size()) {
-                if (meld.cards.size() < 7) {
-                    printCard(meld.cards[i]);
-                } else if (i == 0) {
-                    printCard(meld.cards.front());
-                } else if (i == 1 && meld.cards.front().getRank() != meld.cards.back().getRank()) {
-                    printCard(meld.cards.back());
-                } else {
-                    console.printSpace();
-                }
-            } else {
-                console.printSpace();
-            }
-        }
-        console.print("|");
-        console.printNewLine();
-    }
-}
-
-
-void GameView::ftxuiPrintMeld(const std::vector<MeldView>& melds) {
-    //console.clear();
-    std::vector<Element> rows;
-    constexpr std::size_t maxRows = 8;
-
-    for (std::size_t row = 0; row < maxRows; ++row) {
-        std::vector<Element> cells;
-
-        for (auto& meld : melds) {
-            if (!meld.isInitialized)
-                continue;
-            // not first meld
-            if (meld.rank != melds.front().rank)
-                cells.push_back(text("|"));
-
-            // 1) true canasta indicator: if they have ≥7 cards, on the 8th row show 'C'
-            if (meld.cards.size() >= 7 && row == 7) {
-                cells.push_back(text(" C ") | color(Color::Grey0) | flex_grow);
-                continue;
-            }
-
-            // 2) otherwise if this row falls inside the number of cards
-            if (row < meld.cards.size()) {
-                // a) small meld <7 cards ⇒ show the card at index = row
-                if (meld.cards.size() < 7) {
-                    cells.push_back(makeCardElement(meld.cards[row]));
-
-                } else {
-                    if (row == 0) {
-                        cells.push_back(makeCardElement(meld.cards.front()));
-                    } else if (row == 1 &&
-                            meld.cards.front().getRank() != meld.cards.back().getRank()) {
-                        cells.push_back(makeCardElement(meld.cards.back()));
-                    } else {
-                        cells.push_back(text("   ") | flex_grow);
-                    }
-                }
-            }
-            // 3) outside the card count ⇒ blank
-            else
-                cells.push_back(text("   ") | flex_grow);
-        }
-
-        rows.push_back(hbox(std::move(cells)));
-    }
-
-    // wrap it in a box exactly like before
-    auto grid   = vbox(std::move(rows)) | border;
-    auto layout = vbox({
-        grid,
-    }) | center;
-
-    // turn into a Component and exit on any key
-    Component component = Renderer([&] { return layout; });
-    component = CatchEvent(component, [&](Event e) {
-        if (e.is_character()) {
-            screen.ExitLoopClosure()();
-            return true;
-        }
-        return false;
-    });
-
-    screen.Loop(component);
-}
-
 
 Element GameView::makeHandGrid(const Hand& hand) {
     auto cards = hand.getCards();
@@ -311,13 +156,6 @@ Element GameView::makeHandGrid(const Hand& hand) {
     columns.pop_back(); // remove the last delimeter
     auto cardsElement = hbox(std::move(columns)) | border;
     
-    /*for (std::size_t i = 1; i <= maxSize; ++i)
-        cells.push_back(text(std::to_string(i)) | color(Color::Cyan));
-    auto indexElement = vbox(std::move(cells));
-    cardsElement = hbox({
-        indexElement | center,
-        cardsElement,
-    }) | center;*/
     return cardsElement;
 }
 
@@ -845,7 +683,6 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
     }
     );
 
-    //localScreen.Loop(component);
     auto loop = Loop(&localScreen, component);
     while (!loop.HasQuitted() && shouldUpdate) {
         loop.RunOnce();
