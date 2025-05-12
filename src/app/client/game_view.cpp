@@ -587,79 +587,88 @@ int GameView::promptChoiceWithBoard(
     std::optional<const std::string> message) {
 
     console.clear();
+    auto localScreen = ScreenInteractive::TerminalOutput();
+    localScreen.TrackMouse(false);
+    bool shouldUpdate = true;
+
     // Top: your board, grows to fill
     auto board = makeBoard(boardState) | flex_grow;
 
     // Selection state
     int selected = 0;
     int scroll   = 0;
-    const int paneH = std::min<int>((int)options.size() + 2, 8); 
+    const int paneH = std::min<int>((int)options.size() + 2, 8);
     // show up to 6 options + question/message
 
     Component component = CatchEvent(
         Renderer([&] {
-            // Build prompt lines
-            std::vector<Element> lines;
+        // Build prompt lines
+        std::vector<Element> lines;
 
-            if (message)
-                lines.push_back(text(message.value()));
-            lines.push_back(text(question));
+        if (message)
+            lines.push_back(text(message.value()));
+        lines.push_back(text(question));
 
-            // Visible window
-            int vis = paneH - (message ? 2 : 1);
-            scroll = std::min<int>(scroll, (int)options.size() - vis);
-            scroll = std::max<int>(scroll, 0);
+        // Visible window
+        int vis = paneH - (message ? 2 : 1);
+        scroll = std::min<int>(scroll, (int)options.size() - vis);
+        scroll = std::max<int>(scroll, 0);
 
-            // Draw options with arrow
-            for (int i = 0; i < vis; ++i) {
-                int idx = i + scroll;
-                if (idx >= (int)options.size()) break;
-                std::string prefix = (idx == selected ? "→ " : "  ");
-                lines.push_back(text(prefix + options[idx]));
-            }
+        // Draw options with arrow
+        for (int i = 0; i < vis; ++i) {
+            int idx = i + scroll;
+            if (idx >= (int)options.size()) break;
+            std::string prefix = (idx == selected ? "→ " : "  ");
+            lines.push_back(text(prefix + options[idx]));
+        }
 
-            auto promptBox = vbox(std::move(lines));
-
-            return vbox({
-                board,
-                separator(),
-                promptBox,
-            });
+        auto promptBox = vbox(std::move(lines));
+        return vbox({board, separator(), promptBox});
         }),
         [&](Event e) {
-            int n = options.size();
-            int vis = paneH - (message ? 2 : 1);
+        int n = options.size();
+        int vis = paneH - (message ? 2 : 1);
 
-            if (e == Event::ArrowDown) {
-                if (selected + 1 < n) {
-                selected++;
-                if (selected >= scroll + vis)
-                    scroll = selected - vis + 1;
-                }
-                return true;
+        if (e == Event::ArrowDown) {
+            if (selected + 1 < n) {
+            selected++;
+            if (selected >= scroll + vis)
+                scroll = selected - vis + 1;
             }
-            if (e == Event::ArrowUp) {
-                if (selected > 0) {
-                selected--;
-                if (selected < scroll)
-                    scroll = selected;
-                }
-                return true;
+            return true;
+        }
+        if (e == Event::ArrowUp) {
+            if (selected > 0) {
+            selected--;
+            if (selected < scroll)
+                scroll = selected;
             }
-            if (e == Event::Return) {
-                screen.ExitLoopClosure()();
-                return true;
-            }
+            return true;
+        }
+        if (e == Event::Return) {
+            // Trigger exit; Loop.RunOnce will see this and quit
+            localScreen.ExitLoopClosure()();
+            shouldUpdate = false;
             return false;
+        }
+        return false;
         }
     );
 
-    screen.Loop(component);
+    // Manual event loop: run until Quit()
+    auto loop = Loop(&localScreen, component);
+    while (!loop.HasQuitted() && shouldUpdate) {
+        loop.RunOnce();
+    }
+
     return selected;
 }
 
 std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
     console.clear();
+    auto localScreen = ScreenInteractive::TerminalOutput();
+    localScreen.TrackMouse(false);
+    bool shouldUpdate = true;
     // 1) Mutable hand + map for meld‐requests
     Hand working = boardState.myHand;
     std::map<Rank, MeldRequest> requestMap;
@@ -780,8 +789,9 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
                 return true;
             }
             if (e==Event::Escape) {
-                screen.ExitLoopClosure()();
-                return true;
+                localScreen.ExitLoopClosure()();
+                shouldUpdate = false;
+                return false;
             }
         } else {
         // PICK_CARDS
@@ -835,7 +845,11 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
     }
     );
 
-    screen.Loop(component);
+    //localScreen.Loop(component);
+    auto loop = Loop(&localScreen, component);
+    while (!loop.HasQuitted() && shouldUpdate) {
+        loop.RunOnce();
+    }
 
     // 4) Flatten into vector for server
     std::vector<MeldRequest> result;
@@ -847,6 +861,9 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
 
 Card GameView::runDiscardWizard(const BoardState& boardState) {
     console.clear();
+    auto localScreen = ScreenInteractive::TerminalOutput();
+    localScreen.TrackMouse(false);
+    bool shouldUpdate = true;
     // 1) Working copy of the hand
     Hand working = boardState.myHand;
 
@@ -990,14 +1007,18 @@ Card GameView::runDiscardWizard(const BoardState& boardState) {
         if (e == Event::Return) {
             // finalize
             result = bucket[cardIdx];
-            screen.ExitLoopClosure()();
-            return true;
+            localScreen.ExitLoopClosure()();
+            shouldUpdate = false;
+            return false;
         }
         }
         return false;
     }
     );
 
-    screen.Loop(component);
+    auto loop = Loop(&localScreen, component);
+    while (!loop.HasQuitted() && shouldUpdate) {
+        loop.RunOnce();
+    }
     return result.value();  // always set by Enter in PICK_CARD
 }
