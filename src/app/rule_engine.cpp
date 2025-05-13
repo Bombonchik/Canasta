@@ -274,12 +274,12 @@ Status RuleEngine::addRedThreeCardsToMeld
         auto status = redThreeMeld->checkCardsAddition(redThreeCards);
         if (!status.has_value())
             return std::unexpected(status.error());
-            redThreeMeld->addCards(redThreeCards);
+        redThreeMeld->addCards(redThreeCards);
         return {};
     }
     auto status = redThreeMeld->checkInitialization(redThreeCards);
     if (!status.has_value())
         return std::unexpected(status.error());
-        redThreeMeld->initialize(redThreeCards);
+    redThreeMeld->initialize(redThreeCards);
     return {};
 }

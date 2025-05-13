@@ -31,11 +31,11 @@ void TeamRoundState::reset() {
 }
 
 // Helper to get index for a given rank (internal use)
-std::optional<size_t> TeamRoundState::getIndexForRank(Rank r) const {
+std::optional<std::size_t> TeamRoundState::getIndexForRank(Rank r) const {
     int rankInt = static_cast<int>(r);
     if (rankInt >= static_cast<int>(Rank::Four) && rankInt <= static_cast<int>(Rank::Ace)) {
         // Rank::Four (4) maps to index 2, Rank::Ace (14) maps to index 12
-        return static_cast<size_t>(rankInt - static_cast<int>(Rank::Four) + RANK_MELD_OFFSET);
+        return static_cast<std::size_t>(rankInt - static_cast<int>(Rank::Four) + RANK_MELD_OFFSET);
     }
     return std::nullopt; // Invalid rank for a standard meld
 }

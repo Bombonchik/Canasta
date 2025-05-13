@@ -5,6 +5,11 @@
 #include "cereal/cereal.hpp"
 #include "cereal/archives/binary.hpp"
 
+/**
+ * @struct PlayerPublicInfo
+ * @brief Struct representing public information about a player.
+ * @details This struct is used to send player information to clients.
+ */
 struct PlayerPublicInfo {
     std::string name;
     std::size_t handCardCount;

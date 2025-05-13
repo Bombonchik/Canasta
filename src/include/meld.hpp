@@ -22,6 +22,12 @@ constexpr std::array<const char *, CARD_COLOR_COUNT> canastaTypes = {
     "Natural", "Mixed", // "Wild" can be added later
 };
 
+/**
+ * @enum CanastaType
+ * @brief Enum representing the type of canasta.
+ * @details Natural: Ranks Four → Ace
+ *          Mixed: Ranks Four → Ace with wild cards
+ */
 enum class CanastaType
 {
     Natural, // Ranks Four → Ace
@@ -38,34 +44,113 @@ inline std::string to_string(CanastaType type) {
 constexpr int NATURAL_CANASTA_BONUS = 500;
 constexpr int MIXED_CANASTA_BONUS = 300;
 
-// Abstract Base Class for All Melds
+/**
+ * @class BaseMeld
+ * @brief Abstract base class for melds in the game.
+ */
 class BaseMeld {
 protected:
+    /**
+     * @brief Indicates whether the meld is active (initialized).
+     */
     bool isActive;
+    /**
+     * @brief Cached points value for the meld.
+     */
     int points; // Cached points value
+    /**
+     * @brief Indicates whether there is a pending reversible action of adding cards.
+     */
     bool hasPendingReversible;
 public:
+    /**
+     * @brief Default constructor for BaseMeld.
+     */
     BaseMeld() : isActive(false), points(0), hasPendingReversible(false) {}
     virtual ~BaseMeld() = default;
 
+    /**
+     * @brief Checks if the meld is initialized.
+     * @param cards The cards to check for initialization.
+     * @details This method should be called before initializing the meld.
+     */
     virtual Status checkInitialization(const std::vector<Card>& cards) const = 0;
+    /**
+     * @brief Initializes the meld with the given cards.
+     * @param cards The cards to initialize the meld with.
+     * @details This method should be called only once to set up the meld.
+     *  It asserts if initialization check fails.
+     */
     virtual void initialize(const std::vector<Card>& cards) = 0;
+    /**
+     * @brief Checks if the cards can be added to the meld.
+     * @param cards The cards to check for addition.
+     * @details This method should be called before adding cards to ensure validity.
+     */
     virtual Status checkCardsAddition(const std::vector<Card>& cards) const = 0;
+    /**
+     * @brief Adds cards to the meld.
+     * @param cards The cards to add to the meld.
+     * @param reversible Indicates if the addition is reversible.
+     * @details This method should be called after a successful checkCardsAddition.
+     */
     virtual void addCards(const std::vector<Card>& cards, bool reversible = false) = 0;
+    /**
+     * @brief Gets the points of the meld.
+     * @return The cached points value.
+     * @details This method should be called to retrieve the current cached points of the meld.
+     */
     virtual int getPoints() const = 0; // Get the cached points
+    /**
+     * @brief Updates the points of the meld.
+     * @details This method should be called to recalculate the points based on the current state of the meld.
+     */
     virtual void updatePoints() = 0;   // Update the cached points
+    /**
+     * @brief Checks if the meld is initialized.
+     * @return True if the meld is initialized, false otherwise.
+     */
     bool isInitialized() const { return isActive; }
 
+    /**
+     * @brief Checks if the meld is a canasta.
+     * @details Default: Not a canasta.
+     */
     virtual bool isCanastaMeld() const { return false; } // Default: Not a canasta
+    /**
+     * @brief Gets the type of canasta.
+     * @return The type of canasta if applicable, otherwise std::nullopt.
+     */
     virtual std::optional<CanastaType> getCanastaType() const { return std::nullopt; } // Default: No canasta type
 
+    /**
+     * @brief Resets the meld to its initial state.
+     * @details This method should be called to clear the meld and prepare it for reuse.
+     */
     virtual void reset();
+    /**
+     * @brief Reverts the last addCards operation if applicable.
+     * @details This method should be called to undo the last reversible addition of cards.
+     */
     virtual void revertAddCards() = 0; // Revert the last addCards operation, if applicable
 
+    /**
+     * @brief Gets the cards in the meld.
+     * @return A vector of cards in the meld.
+     * @details This method should be called to retrieve the current cards in the meld.
+     */
     virtual std::vector<Card> getCards() const = 0;
+    /**
+     * @brief Clones the meld object.
+     * @return A unique pointer to a new instance of the meld.
+     * @details This method should be called to create a copy of the meld object.
+     */
     virtual std::unique_ptr<BaseMeld> clone() const = 0;
 
-    // Correctly templated serialization method
+    /**
+     * @brief Serializes the meld object using Cereal.
+     * @param archive The archive to serialize to.
+     */
     template <class Archive>
     void serialize(Archive& archive)
     {
@@ -74,7 +159,10 @@ public:
     }
 };
 
-// Templated class for normal melds (Ranks Four → Ace)
+/**
+ * * @class Meld
+ * * @brief Templated class for ranked melds (Ranks Four → Ace).
+ */
 template <Rank R>
 class Meld final : public BaseMeld {
 private:
@@ -112,12 +200,24 @@ public:
         CEREAL_NVP(backupWildCards));
     }
 private:
+    /**
+     * @brief Updates the canasta status based on the current cards.
+     */
     void updateCanastaStatus();
+    /**
+     * @brief Validates the cards for the meld.
+     * @param cards The cards to validate.
+     * @param naturalCardCount The count of natural cards in the meld.
+     * @param wildCardCount The count of wild cards in the meld.
+     */
     Status validateCards(const std::vector<Card>& cards,
         std::size_t naturalCardCount = 0, std::size_t wildCardCount = 0) const;
 };
 
-// Red Three Meld (Special case)
+/**
+ * @class RedThreeMeld
+ * @brief Class for red three meld.
+ */
 class RedThreeMeld final : public BaseMeld {
 private:
     std::vector<Card> redThreeCards;
@@ -144,10 +244,18 @@ public:
         CEREAL_NVP(backupRedThreeCards));
     }
 private:
+    /**
+     * @brief Validates the cards for the meld.
+     * @param cards The cards to validate.
+     * @param redThreeCount The count of red three cards in the meld.
+     */
     Status validateCards(const std::vector<Card>& cards, std::size_t redThreeCount = 0) const;
 };
 
-// Black Three Meld (Special case)
+/**
+ * @class BlackThreeMeld
+ * @brief Class for black three meld.
+ */
 class BlackThreeMeld final : public BaseMeld {
 private:
     std::vector<Card> blackThreeCards;
@@ -155,12 +263,24 @@ private:
 public:
     Status checkInitialization(const std::vector<Card>& cards) const override;
     void initialize(const std::vector<Card>& cards) override;
+    /**
+     * @brief BlackThreeMeld does not support adding cards.
+     * @details This method will throw an exception if called.
+     */
     Status checkCardsAddition(const std::vector<Card>& cards) const override;
+    /**
+     * @brief BlackThreeMeld does not support adding cards.
+     * @details This method will throw an exception if called.
+     */
     void addCards(const std::vector<Card>& cards, bool reversible) override;
     int getPoints() const override;
     void updatePoints() override;
 
     void reset() override;
+    /**
+     * @brief BlackThreeMeld does not support reverting add cards.
+     * @details This method will throw an exception if called.
+     */
     void revertAddCards() override;
 
     std::vector<Card> getCards() const override;

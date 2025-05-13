@@ -16,28 +16,57 @@
 #include "meld.hpp"
 #include "score_details.hpp"
 
-
+/**
+ * @class Team
+ * @brief Class representing a team of players (1 or 2 players).
+ */
 class Team {
 public:
-    // Constructor - Takes a team name
+    /**
+     * @brief Constructor to create a team with a given name.
+     */
     explicit Team(std::string name);
 
-    // Get the team's name
+    /**
+     * @brief Get the name of the team.
+     */
     const std::string& getName() const;
 
-    // Add a player to the team (by reference)
+    /**
+     * @brief Add a player to the team.
+     * @param player Reference to the player to add.
+     */
     void addPlayer(Player& player);
 
+    /**
+     * @brief Check if the team has a specific player.
+     * @param player Reference to the player to check.
+     * @return True if the player is in the team, false otherwise.
+     */
     bool hasPlayer(const Player& player) const;
 
-    // Get the players in the team
+    /**
+     * @brief Get the players in the team.
+     * @return A vector of references to the players in the team.
+     */
     const std::vector<std::reference_wrapper<Player>>& getPlayers() const;
 
+
+    /**
+     * @brief Get the total score of the team.
+     */
     int getTotalScore() const;
 
+    /**
+     * @brief Add points to the team's total score.
+     * @param points The points to add.
+     */
     void addToTotalScore(int points);
 
-    // Cereal serialization function
+    /**
+     * @brief Serialize the Team object using Cereal.
+     * @param archive The archive to serialize to.
+     */
     template <class Archive>
     void serialize(Archive& ar) {
         // Placeholder: Serialization of players needs decision (e.g., serialize names/IDs)
@@ -48,9 +77,11 @@ private:
     std::string name;
 
     int totalScore; // Total score for the game
-    // Using reference_wrapper to refer to Player objects owned elsewhere
+    /**
+     * @brief Vector of players in the team.
+     * @details Players are stored as reference wrappers to avoid ownership issues.
+     */
     std::vector<std::reference_wrapper<Player>> players;
-    // Storing unique pointers to BaseMeld to handle polymorphism
 };
 
 #endif //TEAM_HPP

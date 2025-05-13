@@ -14,47 +14,96 @@
 #include "score_details.hpp"
 
 
+/**
+ * @class TeamRoundState
+ * @brief Represents the state of a team's melds and scores in a round.
+ */
 class TeamRoundState {
 public:
+    /**
+     * @brief Default constructor for TeamRoundState.
+     * @details Precreates all possible melds for the team.
+     */
     TeamRoundState();
     // --- Meld Management ---
 
-    // Get read-only access to the collection of all potential meld objects
+    /**
+     * @brief Get the team's melds.
+     * @return A vector of unique pointers to BaseMeld objects.
+     */
     const std::vector<std::unique_ptr<BaseMeld>>& getMelds() const;
 
-    // Check if the team has made an initial meld (any meld is initialized)
+    /**
+     * @brief Check if the team has made an initial rank meld.
+     * @return True if any rank meld is initialized, false otherwise.
+     */
     bool hasMadeInitialRankMeld() const;
 
     // Calculate the total points from the team's melds
+    /**
+     * @brief Calculate the total points from the team's melds.
+     * @return The total points from all melds (excluding Red Three).
+     */
     int calculateMeldPoints() const;
 
-    // Calculate the detailed score breakdown for the round
+    /**
+     * @brief Calculate the score breakdown for the round.
+     */
     ScoreBreakdown getScoreBreakdown(int goingOutBonus) const;
 
-    // Get a pointer to modify a specific rank-based meld (4-Ace)
-    // Returns nullptr if the rank is invalid for a standard meld.
+    /**
+     * @brief Get a pointer to modify a specific rank-based meld.
+     * @param r The rank of the meld to get.
+     * @return A pointer to the BaseMeld object for the specified rank or nullptr if invalid.
+     */
     BaseMeld* getMeldForRank(Rank r);
 
-    // Get a pointer to modify the Red Three meld
+    /**
+     * @brief Get a pointer to modify the Red Three meld.
+     * @return A pointer to the BaseMeld object for the Red Three meld or nullptr if invalid.
+     */
     BaseMeld* getRedThreeMeld();
 
-    // Get a pointer to modify the Black Three meld
+    /**
+     * @brief Get a pointer to modify the Black Three meld.
+     * @return A pointer to the BaseMeld object for the Black Three meld or nullptr if invalid.
+     */
     BaseMeld* getBlackThreeMeld();
 
-    // Const overload (for read-only callers, like RuleEngine)
+    /**
+     * @brief Get a pointer to a specific rank-based meld (const version).
+     * @param r The rank of the meld to get.
+     * @return A const pointer to the BaseMeld object for the specified rank or nullptr if invalid.
+     */
     const BaseMeld* getMeldForRank(Rank r) const;
 
-    // Const overload for Black Three Meld
+    /**
+     * @brief Get a pointer to the Red Three meld (const version).
+     * @return A const pointer to the BaseMeld object for the Red Three meld or nullptr if invalid.
+     */
     const BaseMeld* getBlackThreeMeld() const;
 
-    // Const overload for Red Three Meld
+    /**
+     * @brief Get a pointer to the Black Three meld (const version).
+     * @return A const pointer to the BaseMeld object for the Black Three meld or nullptr if invalid.
+     */
     const BaseMeld* getRedThreeMeld() const;
 
+    /**
+     * @brief Reset the state of the team round.
+     * @details This function clears all melds and resets the state.
+     */
     void reset();
 
+    /**
+     * @brief Clone the TeamRoundState object.
+     * @return A new TeamRoundState object that is a copy of this one.
+     */
     TeamRoundState clone() const;
 
-    // Cereal serialization function
+    /**
+     * @brief Serialize the TeamRoundState using Cereal.
+     */
     template <class Archive>
     void serialize(Archive& ar) {
         // Placeholder: Serialization of players needs decision (e.g., serialize names/IDs)
@@ -63,12 +112,21 @@ public:
     }
 private:
     // Helper to pre-create all 13 possible meld types
+    /**
+     * @brief Creates all possible melds for the team.
+     */
     void createMelds();
 
-    // Helper to get index for a given rank (internal use)
-    std::optional<size_t> getIndexForRank(Rank r) const;
+    /**
+     * @brief Gets the index for a given rank.
+     * @param r The rank to get the index for.
+     * @return The index corresponding to the rank, or std::nullopt if invalid.
+     */
+    std::optional<std::size_t> getIndexForRank(Rank r) const;
 
-    // Storing unique pointers to BaseMeld to handle polymorphism
+    /**
+     * @brief Vector of unique pointers to BaseMeld objects for all the melds.
+     */
     std::vector<std::unique_ptr<BaseMeld>> melds;
 };
 

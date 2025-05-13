@@ -18,7 +18,10 @@
 #include "meld.hpp"
 #include "rule_engine.hpp"
 
-// Should match the enum in server_network.hpp
+/**
+ * @enum ClientMessageType
+ * @brief Enum representing the type of the action sent from the client to the server.
+ */
 enum class ClientMessageType : uint8_t {
     Login,
     DrawDeck,
@@ -28,8 +31,10 @@ enum class ClientMessageType : uint8_t {
     Revert,
 };
 
-// Message types received BY Client FROM Server
-// Should match the enum in server_network.cpp
+/**
+ * @enum ServerMessageType
+ * @brief Enum representing the type of a message sent from the server to the client.
+ */
 enum class ServerMessageType : uint8_t {
     GameStateUpdate,
     ActionError,
@@ -37,6 +42,11 @@ enum class ServerMessageType : uint8_t {
     LoginFailure,
 };
 
+/**
+ * @struct ActionError
+ * @brief Struct representing an error message sent from the server to the client.
+ * @details Contains a message and an optional status code.
+ */
 struct ActionError {
     std::string     message;
     std::optional<TurnActionStatus> status;
@@ -49,6 +59,14 @@ struct ActionError {
 
 // Helper function to serialize data with size header
 
+/**
+ * @brief Serialize a message of type M with additional data.
+ * @tparam M Message type (ClientMessageType or ServerMessageType)
+ * @tparam T Data type to serialize
+ * @param msgType Message type
+ * @param data Data to serialize
+ * @return Serialized message as a vector of chars
+ */
 template <typename M, typename T> // M = ClientMessageType or ServerMessageType, T = some data type
 std::vector<char> serializeMessage(M msgType, const T& data) {
     std::ostringstream os(std::ios::binary);
@@ -73,7 +91,12 @@ std::vector<char> serializeMessage(M msgType, const T& data) {
     return messageBuffer;
 }
 
-// Overload for messages with only a type (no data payload)
+/**
+ * @brief Serialize a message of type M without additional data.
+ * @tparam M Message type (ClientMessageType or ServerMessageType)
+ * @param msgType Message type
+ * @return Serialized message as a vector of chars
+ */
 template <typename M>
 std::vector<char> serializeMessage(M msgType) {
     std::ostringstream os(std::ios::binary);

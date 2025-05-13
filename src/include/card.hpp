@@ -24,7 +24,14 @@ constexpr std::array<const char*, CARD_TYPE_COUNT> typeNames = {
     "Natural", "Wild", "Red Three", "Black Three"
 };
 
-// Enum for Card Type
+/**
+ * @enum CardType
+ * @brief Enum representing the type of card.
+ * @details Natural: Normal cards (4-7, 8-K, A)
+ * @details Wild: Jokers and 2s
+ * @details RedThree: Special scoring card
+ * @details BlackThree: Blocks discard pile
+ */
 enum class CardType {
     Natural,   // Normal cards (4-7, 8-K, A)
     Wild,      // Jokers and 2s
@@ -37,7 +44,10 @@ inline std::string to_string(CardType type) {
     return typeNames[static_cast<int>(type)];
 }
 
-// Enum for Rank (Ace, Two, Three, ..., King)
+/**
+ * @enum Rank
+ * @brief Enum representing the rank of a card.
+ */
 enum class Rank {
     Joker = 1, Two, Three, Four, Five, Six, Seven,
     Eight, Nine, Ten, Jack, Queen, King, Ace
@@ -48,7 +58,10 @@ inline std::string to_string(Rank rank) {
     return rankNames[static_cast<int>(rank) - 1];
 }
 
-// Enum for Card Color (Red or Black)
+/**
+ * @enum CardColor
+ * @brief Enum representing the color of a card.
+ */
 enum class CardColor {
     RED, BLACK
 };
@@ -58,7 +71,10 @@ inline std::string to_string(CardColor color) {
     return colorNames[static_cast<int>(color)];
 }
 
-// Card Struct with Constructor, Getters, and Precomputed Points
+/**
+ * @class Card
+ * @brief Represents a playing card with rank, color, and type.
+ */
 class Card {
 private:
     Rank rank;          // Card Rank (A, 2-10, J, Q, K, Joker)
@@ -66,15 +82,41 @@ private:
     CardType type;      // Type (Natural, Wild, RedThree, BlackThree)
     int points;         // Precomputed points for efficiency
 public:
-    Card() = default; // for serialization purposes only
-    // Constructor
+
+    /**
+    * @brief Constructor for Card.
+    * @param rank The rank of the card (1-14 for Joker, 2-10, J, Q, K, A).
+    * @param color The color of the card (Red or Black).
+    */
     Card(Rank rank, CardColor color);
 
+    /**
+     * @brief Constructor only for serialization purposes.
+     */
+    Card() = default;
+
     // **Getter Methods**
+
+    /**
+     * @brief Get the rank of the card.
+     */
     Rank getRank() const { return rank; }
+    /**
+     * @brief Get the type of the card.
+     */
     CardType getType() const { return type; }
+    /**
+     * @brief Get the color of the card.
+     */
     CardColor getColor() const { return color; }
+    /**
+     * @brief Get the points of the card.
+     */
     int getPoints() const { return points; }
+    /**
+     * @brief Get the string representation of the card.
+     * @return A string representing the card (e.g., "Red Six").
+     */
     std::string toString() const;
 
     bool operator==(const Card& other) const;
@@ -84,16 +126,25 @@ public:
     bool operator<=(const Card& other) const;
     bool operator>=(const Card& other) const;
 
-    // Serialization with Cereal
+    /**
+     * @brief Serialize the Card object using Cereal.
+     */
     template <class Archive>
     void serialize(Archive& archive) {
         archive(CEREAL_NVP(rank), CEREAL_NVP(color), CEREAL_NVP(type), CEREAL_NVP(points));
     }
 
 private:
-    // Determine Card Type Automatically
+    /**
+     * @brief Determine the type of the card based on its rank and color.
+     */
     static CardType determineCardType(Rank rank, CardColor color);
-    // Calculate Points
+    /**
+     * @brief Calculate the points for the card based on its rank and type.
+     * @param rank The rank of the card.
+     * @param type The type of the card.
+     * @return The points for the card.
+     */
     static int calculatePoints(Rank rank, CardType type);
 };
 
