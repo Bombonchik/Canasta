@@ -63,16 +63,6 @@ public:
      */
     void addToTotalScore(int points);
 
-    /**
-     * @brief Serialize the Team object using Cereal.
-     * @param archive The archive to serialize to.
-     */
-    template <class Archive>
-    void serialize(Archive& ar) {
-        // Placeholder: Serialization of players needs decision (e.g., serialize names/IDs)
-        ar(CEREAL_NVP(name));
-    }
-
 private:
     std::string name;
 
