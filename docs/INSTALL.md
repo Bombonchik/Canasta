@@ -6,7 +6,7 @@ git clone git@gitlab.mff.cuni.cz:teaching/nprg041/2024-25/repetenti/yuriicho.git
 cd yuriicho/project/src/
 ```
 
-**Use `pip` to install Conan:**
+**Use `pip` to install Conan**:
 ```sh
 pip install conan
 ```
