@@ -23,8 +23,9 @@ using SessionPtr = std::shared_ptr<Session>;
 using MessageQueue = std::deque<std::vector<char>>; // Store serialized messages as byte vectors
 
 /**
+ * @class ServerNetwork
  * @brief Handles network connections, message framing, serialization,
- *        and dispatching actions to the GameManager. Manages client sessions.
+ *        and dispatching actions to the RoundManager. Manages client sessions.
  */
 class ServerNetwork {
 public:
@@ -56,10 +57,10 @@ public:
      */
     void deliverToAll(const std::vector<char>& message);
 
-    // --- Action Handling (Called by Session) ---
-    // These methods will be called by a Session when it receives a complete message.
-    // They need to deserialize the action parameters and dispatch to GameManager/RoundManager
-    // on the correct strand/thread.
+    /// --- Action Handling (Called by Session) ---
+    /// These methods will be called by a Session when it receives a complete message.
+    /// They need to deserialize the action parameters and dispatch to GameManager/RoundManager
+    /// on the correct strand/thread.
 
     void handleClientDrawDeck(const std::string& playerName);
     void handleClientTakeDiscardPile(const std::string& playerName);
@@ -84,26 +85,40 @@ private:
      */
     void leave(SessionPtr session);
 
+    /**
+     * @brief Dispatches an action to the RoundManager for the current player.
+     * @details This function ensures that the action is executed on the correct strand
+     */
     template<typename ActionFn>
     void dispatchAction(const std::string& playerName, ActionFn&& action);
 
+    /**
+     * @brief Sends an error message back to the client.
+     * @param playerName The name of the player to send the error to.
+     * @param errorMsg The error message to send.
+     * @param status Optional status code for the error.
+     */
     void sendActionError(const std::string& playerName, const std::string& errorMsg,
         std::optional<TurnActionStatus> status = std::nullopt);
 
+    /**
+     * @brief Broadcasts the game state to all players.
+     * @param lastActionMsg The message describing the last action taken.
+     * @param status Optional status code for the last action.
+     */
     void broadcastGameState(const std::string& lastActionMsg,
         std::optional<TurnActionStatus> status = std::nullopt);
 
     // --- Member Variables ---
-    asio::io_context& ioContext; // Reference to the main I/O context
-    asio::ip::tcp::acceptor acceptor; // Accepts incoming connections
-    GameManager& gameManager; // Reference to the game logic orchestrator
+    asio::io_context& ioContext; ///< Reference to the main I/O context
+    asio::ip::tcp::acceptor acceptor; ///< Accepts incoming connections
+    GameManager& gameManager; ///< Reference to the game logic orchestrator
 
-    // Use a strand to ensure game logic calls happen sequentially for the single game instance
+    /// Use a strand to ensure game logic calls happen sequentially for the single game instance
     asio::strand<asio::io_context::executor_type> gameStrand;
-
-    // Manages active sessions (map player name to session)
+    /// Manages active sessions (map player name to session)
     std::map<std::string, SessionPtr> sessions;
-    // Mutex for protecting access to sessions map if accessed from multiple threads (acceptor vs session handlers)
+    /// Mutex for protecting access to sessions map if accessed from multiple threads (acceptor vs session handlers)
     std::mutex sessionsMutex;
 };
 
@@ -132,11 +147,18 @@ void ServerNetwork::dispatchAction(const std::string& playerName, ActionFn&& act
 //----------------------------------------------------------------------
 
 /**
+ * @class Session
  * @brief Represents a single client connection session.
  * Handles reading/writing messages for one client.
  */
 class Session : public std::enable_shared_from_this<Session> {
 public:
+    /**
+     * @brief Constructor.
+     * @param socket The socket for this session.
+     * @param serverNetwork Reference to the server network.
+     * @param gameStrand Strand for dispatching game logic calls.
+     */
     Session(asio::ip::tcp::socket socket, ServerNetwork& serverNetwork, asio::strand<asio::io_context::executor_type>& gameStrand);
 
     /**
@@ -192,24 +214,34 @@ private:
      */
     void processMessage();
 
+    /**
+     * @brief Processes a login message from the client.
+     * @param msgType The type of the message.
+     * @param archive The archive containing the serialized data.
+     */
     void processLoginMessage(ClientMessageType msgType, cereal::BinaryInputArchive& archive);
 
+    /**
+     * @brief Processes a game message from the client.
+     * @param msgType The type of the message.
+     * @param archive The archive containing the serialized data.
+     */
     void processGameMessage(ClientMessageType msgType, cereal::BinaryInputArchive& archive);
 
     // --- Member Variables ---
-    asio::ip::tcp::socket socket; // Socket for this client connection
-    ServerNetwork& serverNetwork; // Reference back to the main server network logic
-    asio::strand<asio::io_context::executor_type>& gameStrand; // Strand for dispatching game logic calls
+    asio::ip::tcp::socket socket; ///< Socket for this client connection
+    ServerNetwork& serverNetwork; ///< Reference back to the server network
+    asio::strand<asio::io_context::executor_type>& gameStrand; ///< Strand for dispatching game logic calls
 
     // Buffer for reading incoming messages
-    std::vector<char> readMsgBuffer;
-    std::uint32_t incomingMsgSize; // Size of the message currently being read
+    std::vector<char> readMsgBuffer; ///< Buffer for reading incoming messages
+    std::uint32_t incomingMsgSize; ///< Size of the message currently being read
 
     // Queue for outgoing messages
-    MessageQueue writeMsgs;
+    MessageQueue writeMsgs; ///< Queue of messages to be sent to the client
 
-    std::string playerName; // Name associated with this session after successful join/login
-    bool joined = false; // Flag indicating if the player has successfully joined
+    std::string playerName; ///< Player's name associated with this session after successful join/login
+    bool joined = false; ///< Flag indicating if the player has successfully joined
 };
 
 

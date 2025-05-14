@@ -5,6 +5,15 @@
 #include "server/round_manager.hpp" // for RoundManager
 #include "server/game_manager.hpp"  // for GameManager
 
+/**
+ * @brief Creates a ClientGameState object for sending to the client.
+ * @param player The player whose state is being created.
+ * @param roundManager The current round manager.
+ * @param gameManager The current game manager.
+ * @param actionDescription Description of the last action taken.
+ * @param status Optional status of the last action.
+ * @return A ClientGameState object containing the relevant game state.
+ */
 inline ClientGameState makeClientGameState(
     const Player& player,
     const RoundManager& roundManager,

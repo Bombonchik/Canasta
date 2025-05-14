@@ -274,8 +274,7 @@ std::expected<std::size_t, TurnActionResult> TurnManager::checkMeldRequestsCards
     return cardsInHand.size(); // Return the number of cards left in hand
 }
 
-void TurnManager::processMeldRequests
-(
+void TurnManager::processMeldRequests(
     const std::vector<MeldRequest>& meldRequests,
     std::vector<std::vector<Card>>& meldSuggestions,
     std::vector<RankMeldProposal>& additionProposals
@@ -297,8 +296,7 @@ void TurnManager::processMeldRequests
     }
 }
 
-std::expected<void, TurnActionResult> TurnManager::processMeldSuggestions
-(
+std::expected<void, TurnActionResult> TurnManager::processMeldSuggestions(
     const std::vector<std::vector<Card>>& meldSuggestions, 
     std::vector<RankMeldProposal>& rankInitializationProposals,
     std::optional<BlackThreeMeldProposal>& blackThreeInitializationProposal
@@ -323,7 +321,7 @@ std::expected<void, TurnActionResult> TurnManager::processMeldSuggestions
                     TurnActionStatus::Error_InvalidMeld,
                     "Cannot form more than one Black Three meld."
                 });
-                blackThreeInitializationProposal = BlackThreeMeldProposal{
+            blackThreeInitializationProposal = BlackThreeMeldProposal{
                 meldSuggestion
             };
         } else {

@@ -15,6 +15,7 @@
 
 
 /**
+ * @class GameManager
  * @brief Orchestrates the overall Canasta game, managing players, teams,
  * multiple rounds, and total scores.
  */
@@ -22,23 +23,31 @@ class GameManager {
 public:
     /**
      * @brief Constructs a GameManager.
-     * @param playerNames
+     * @param playersCount Number of players in the game (2 or 4).
      */
     explicit GameManager(std::size_t playersCount);
 
+    /**
+     * @brief Checks if number of joined players is equal to playersCount.
+     * @return True if all players have joined, false otherwise.
+     */
     bool allPlayersJoined() const;
 
+    /**
+     * @brief Adds a player to the game.
+     * @param playerName Name of the player to add.
+     * @return Status indicating success or failure.
+     */
     Status addPlayer(const std::string& playerName);
 
     /**
      * @brief Starts the game, dealing the first round.
-     * Throws std::logic_error if the game is already started or finished.
+     * Throws std::logic_error if the game is already started.
      */
     void startGame();
 
     /**
      * @brief Checks if the entire game (multiple rounds) is over.
-     * @return True if the game has reached a conclusion, false otherwise.
      */
     bool isGameOver() const;
 
@@ -63,7 +72,7 @@ public:
     const RoundManager* getCurrentRoundManager() const; // Const overload
 
     /**
-     * @brief Advances the game state, typically called periodically or after actions.
+     * @brief Advances the game state.
      * Checks if the current round is over and starts the next one if needed.
      */
     void advanceGameState();
@@ -78,25 +87,29 @@ public:
     void handlePlayerDisconnect(const std::string& playerName);
 
 private:
+    /**
+     * @brief Enum representing the phases of the game.
+     */
     enum class GamePhase {
         NotStarted,
         RoundInProgress,
-        BetweenRounds, // Waiting to start the next round
+        BetweenRounds,
         Finished
     };
 
     // --- Game Components ---
-    std::vector<Player> allPlayers; // Owns the Player objects
+    std::vector<Player> allPlayers; ///< Owns the Player objects
     std::size_t playersCount;
     Team team1;
     Team team2;
 
     // --- Game State ---
     GamePhase gamePhase;
-    // Use std::optional for outcome until game is finished
+    /// Final outcome of the game, if applicable
     std::optional<GameOutcome> finalOutcome;
 
     std::vector<std::string> playerNames; // Names of players in the game
+    /// Unique pointer to the current round manager
     std::unique_ptr<RoundManager> currentRound;
 
     // --- Private Helpers ---

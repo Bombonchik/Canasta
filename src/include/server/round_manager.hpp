@@ -21,6 +21,7 @@
 
 
 /**
+ * @class RoundManager
  * @brief Manages the state and progression of a single round of Canasta.
  *
  * Owns the deck, discard pile, and team states for the round.
@@ -30,12 +31,12 @@ class RoundManager {
 public:
     /**
      * @brief Constructs a RoundManager.
-     * @param players Vector of all players participating in the round.
-     * @param 
-     * @param 
+     * @param players Vector of all players in turn order
+     * @param team1 Reference to the first team
+     * @param team2 Reference to the second team
      */
     RoundManager(
-        const std::vector<std::reference_wrapper<Player>>& players, // All players in turn order
+        const std::vector<std::reference_wrapper<Player>>& players,
         std::reference_wrapper<const Team> team1,
         std::reference_wrapper<const Team> team2
     );
@@ -46,8 +47,8 @@ public:
     void startRound();
 
     /**
-     * @brief Gets the ID or reference of the player whose turn it currently is.
-     * @return Reference to the current player. Throws if round not started/over.
+     * @brief Gets reference of the player whose turn it currently is.
+     * @return Reference to the current player. Throws errors if round not started/over.
      */
     Player& getCurrentPlayer() const;
 
@@ -96,10 +97,14 @@ public:
     /**
      * @brief Calculates the scores for each team at the end of the round.
      * Should only be called when isRoundOver() is true.
-     * @return A map where the key is the team name (or ID) and the value is the ScoreBreakdown.
+     * @return A map where the key is the team name and the value is the ScoreBreakdown.
      */
     std::map<std::string, ScoreBreakdown> calculateScores() const;
 
+    /**
+     * @brief Gets the current state of the main deck and discard pile for the client.
+     * @return A ClientDeck object representing the current state.
+     */
     ClientDeck getClientDeck() const;
 
     /**
@@ -109,11 +114,19 @@ public:
      */
     std::vector<PlayerPublicInfo> getAllPlayersPublicInfo(const Player& me) const;
 
+    /**
+     * @brief Gets the state of the team for a given player.
+     * @param player The player whose team state is requested.
+     * @return TeamRoundState object for the player's team in the current round.
+     */
     TeamRoundState getTeamStateForTeam(const Team& team) const;
 
 private:
 
-    static constexpr std::size_t INITIAL_HAND_SIZE = 11; // Number of cards dealt to each player at the start
+    static constexpr std::size_t INITIAL_HAND_SIZE = 11; ///< Number of cards dealt to each player at the start
+    /**
+     * @brief Enum representing the phases of the round.
+     */
     enum class RoundPhase {
         NotStarted,
         Dealing,
@@ -125,16 +138,16 @@ private:
     const std::vector<std::reference_wrapper<Player>> playersInTurnOrder;
     std::reference_wrapper<const Team> team1; // Store for lookup
     std::reference_wrapper<const Team> team2; // Store for lookup
-    TeamRoundState team1State;
-    TeamRoundState team2State;
+    TeamRoundState team1State;      ///< State of team 1's melds and scores
+    TeamRoundState team2State;      ///< State of team 2's melds and scores
 
-    RoundPhase roundPhase;
-    ServerDeck serverDeck;
-    std::size_t currentPlayerIndex;
-    std::optional<std::reference_wrapper<Player>> playerWhoWentOut; // Store who went out
-    bool isMainDeckEmpty;
+    RoundPhase roundPhase;          ///< Current phase of the round (dealing, in progress, finished)
+    ServerDeck serverDeck;          ///< The main deck and discard pile for the round
+    std::size_t currentPlayerIndex; ///< Index of the current player in playersInTurnOrder
+    std::optional<std::reference_wrapper<Player>> playerWhoWentOut; ///< Player who went out, if any
+    bool isMainDeckEmpty;         ///< Flag indicating if the main deck is empty
 
-    std::unique_ptr<TurnManager> currentTurnManager;
+    std::unique_ptr<TurnManager> currentTurnManager; ///< The TurnManager for the current player
 
     // --- Private Helpers ---
 
@@ -159,10 +172,15 @@ private:
      */
     void advanceToNextPlayer();
 
+    /**
+     * @brief Gets the team associated with a given player.
+     * @param player The player whose team is requested.
+     * @return Const reference to the Team object for the player.
+     */
     const Team& getTeamForPlayer(const Player& player) const;
 
     /**
-     * @brief Gets the TeamRoundState associated with a given player. Helper function.
+     * @brief Gets the TeamRoundState reference associated with a given player. Helper function.
      */
     TeamRoundState& getTeamStateForPlayer(Player& player);
     const TeamRoundState& getTeamStateForPlayer(const Player& player) const; // Const overload
