@@ -9,7 +9,10 @@
 #include <unistd.h>
 #endif
 
-/// RAII guard: on construction, disable line-buffering & echo; on destruction, restore.
+/**
+ * @class InputGuard
+ * @brief RAII guard: on construction, disable line-buffering & echo; on destruction, restore.
+ */
 class InputGuard {
 public:
     InputGuard();

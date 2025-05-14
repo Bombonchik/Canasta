@@ -13,16 +13,22 @@ class ClientNetwork;
 class GameView;
 
 /**
+ * @enum ActionAttemptStatus
  * @brief Represents the status of an attempted player action, tracked internally by ClientController.
  */
 enum class ActionAttemptStatus {
-    NotAttempted,   // The action has not yet been tried in the current context/turn.
-    Attempting,     // The action has been initiated with the server, awaiting response.
-    Succeeded      // The server confirmed the action was successful.
+    NotAttempted,   ///< The action has not yet been tried in the current context/turn.
+    Attempting,     ///< The action has been initiated with the server, awaiting response.
+    Succeeded      ///< The server confirmed the action was successful.
 };
 
 class ClientController {
 public:
+    /**
+     * @brief Constructor for ClientController.
+     * @param clientNetwork A shared pointer to the ClientNetwork instance.
+     * @param gameView A reference to the GameView instance for user interaction.
+     */
     ClientController(std::shared_ptr<ClientNetwork> clientNetwork, GameView& gameView);
 
     /**
@@ -34,14 +40,11 @@ public:
      */
     void connect(const std::string& host, const std::string& port);
 
-    // The main logic for handling game flow, player input, and server communication
-    // will be driven by the callbacks from ClientNetwork, primarily handleGameStateUpdate.
-
 private:
-    std::shared_ptr<ClientNetwork> network;
-    GameView& view;
-    std::string localPlayerName; // To store the player's name after successful input
-    BoardState currentBoardState; // To keep track of the current board state
+    std::shared_ptr<ClientNetwork> network; /// Pointer to the ClientNetwork instance for network operations
+    GameView& view;                         ///< Reference to the GameView instance for user interaction
+    std::string localPlayerName;            ///< To store the player's name after successful input
+    BoardState currentBoardState;           ///< To keep track of the current board state
 
     // --- Internal Action State Tracking ---
     // These statuses help the controller decide what to do next based on the game state
@@ -51,7 +54,7 @@ private:
     ActionAttemptStatus meldAttemptStatus;
     ActionAttemptStatus discardAttemptStatus;
 
-    // Helper to reset action statuses, e.g., at the start of a new turn or after a revert.
+    /// Helper to reset action statuses, e.g., at the start of a new turn.
     void resetTurnActionStatuses();
 
     // --- Callback Handlers from ClientNetwork ---
@@ -63,24 +66,54 @@ private:
     void handleDisconnect();
 
     // --- Internal Game Logic ---
-    // Called by handleGameStateUpdate to process the current player's turn.
+    /// Process the current player's turn.
     void processPlayerTurn(std::optional<const std::string> message = std::nullopt); 
     
     // Methods to prompt user for actions via GameView and then call ClientNetwork
+    /**
+     * @brief Prompts the user to choose between drawing a card from the deck or taking the discard pile.
+     */
     void promptAndProcessDrawCardOrTakeDiscardPile
     (std::optional<const std::string> message = std::nullopt);
+    /**
+     * @brief Processes the turn flow after drawing a card from the deck.
+     */
     void processAfterDrawing(std::optional<const std::string> message = std::nullopt);
+    /**
+     * @brief Processes the turn flow after taking the discard pile.
+     */
     void processAfterTakingDiscardPile(std::optional<const std::string> message = std::nullopt);
+    /**
+     * @brief Processes the turn flow after melding.
+     */
     void processAfterMelding(std::optional<const std::string> message = std::nullopt);
+    /**
+     * @brief Processes the melding action.
+     */
     void processMelding(ActionAttemptStatus& previousAttemptStatus);
+    /**
+     * @brief Processes the revert action.
+     */
     void processRevert();
+        /**
+     * @brief Processes the discard action.
+     */
     void processDiscard();
 
-    // Internal helper to setup callbacks on ClientNetwork
+    /// Internal helper to setup callbacks on ClientNetwork
     void setupNetworkCallbacks();
 
+    /**
+     * @brief Gets the meld views from the team round state.
+     */
     std::vector<MeldView> getMeldViewsFromTeamRoundState(const TeamRoundState& teamRoundState) const;
+    /**
+     * @brief Gets the board state from the game state.
+     */
     BoardState getBoardState(const ClientGameState& gameState) const;
+    /**
+     * @brief Gets the score state from the game state.
+     */
     ScoreState getScoreState(const ClientGameState& gameState) const;
 };
 

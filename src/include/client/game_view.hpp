@@ -25,17 +25,29 @@
 
 using namespace ftxui;
 
+/**
+ * @struct CardView
+ * @brief Struct representing a card view for display purposes.
+ */
 struct CardView {
     std::string label;
     ftxui::Color color;
 };
 
+/**
+ * @struct MeldView
+ * @brief Struct representing a meld view for display purposes.
+ */
 struct MeldView {
     Rank rank;
     std::vector<Card> cards;
     bool isInitialized;
 };
 
+/**
+ * @struct BoardState
+ * @brief Struct representing the game board state for display purposes.
+ */
 struct BoardState {
     std::vector<MeldView> myTeamMelds;
     std::vector<MeldView> opponentTeamMelds;
@@ -51,6 +63,10 @@ struct BoardState {
     int opponentTeamMeldPoints;
 };
 
+/**
+ * @struct ScoreState
+ * @brief Struct representing the score state for display purposes.
+ */
 struct ScoreState {
     ScoreBreakdown myTeamScoreBreakdown;
     ScoreBreakdown opponentTeamScoreBreakdown;
@@ -62,33 +78,128 @@ struct ScoreState {
 };
 
 
+/**
+ * @class GameView
+ * @brief Class responsible for displaying the game state and handling user input.
+ */
 class GameView {
 public:
+    /**
+     * @brief Constructor for GameView.
+     */
     GameView();
+    /**
+     * @brief Prompt the user for a text input.
+     * @param question The question to display.
+     * @param placeholder The placeholder text to display.
+     * @return The user's input as a string.
+     */
     std::string promptString(const std::string& question, std::string& placeholder);
+    /**
+     * @brief Display the game board and prompt the user for input.
+     * @param question The question to display.
+     * @param options The options for the user to choose from.
+     * @param boardState The current state of the game board.
+     * @param message Optional message to display.
+     * @return The index of the selected option.
+     */
     int promptChoiceWithBoard(const std::string& question, const std::vector<std::string>& options,
         const BoardState& boardState, std::optional<const std::string> message = std::nullopt);
+    /**
+     * @brief Display the game board and get the user's meld requests.
+     * @param boardState The current state of the game board.
+     * @return A vector of meld requests.
+     */
     std::vector<MeldRequest> runMeldWizard(const BoardState& boardState);
+    /**
+     * @brief Display the game board and get the user's discard card.
+     * @param boardState The current state of the game board.
+     * @return The selected card to discard.
+     */
     Card runDiscardWizard(const BoardState& boardState);
+    /**
+     * @brief Display the game board with messages.
+     * @details This method clears the console, disables input, and shows the game board with messages.
+     * @param messages The messages to display.
+     * @param boardState The current state of the game board.
+     */
     void showStaticBoardWithMessages(
         const std::vector<std::string>& messages, const BoardState& boardState);
+    /**
+     * @brief Display the game score.
+     * @details This method clears the console, disables input, and shows the game score.
+     * @param scoreState The current state of the game score.
+     */
     void showStaticScore(const ScoreState& scoreState);
+    /**
+     * @brief Restore the input for the console.
+     */
     void restoreInput();
 
 private:
-    CanastaConsole console;
-    ScreenInteractive screen;
-    std::optional<InputGuard> inputGuard;
+    CanastaConsole console;                 ///< Console for output
+    ScreenInteractive screen;               ///< Screen for interactive input/output
+    std::optional<InputGuard> inputGuard;   /// Input guard for console state
     
+    /**
+     * @brief Get the card view for display purposes.
+     * @param card The card to display.
+     * @return The CardView struct containing the label and color.
+     */
     CardView getCardView(const Card& card);
+    /**
+     * @brief Create a card element for display.
+     * @param card The card to display.
+     * @param padded Whether to pad the card label.
+     * @return The element representing the card.
+     */
     Element makeCardElement(const Card& card, bool padded = true);
+    /**
+     * @brief Create a board element for display.
+     * @param boardState The current state of the game board.
+     * @return The element representing the game board.
+     */
     Element makeBoard(const BoardState& boardState);
+    /**
+     * @brief Create a hand grid element for display.
+     * @param hand The hand to display.
+     * @return The element representing the hand grid.
+     */
     Element makeHandGrid(const Hand& hand);
+    /**
+     * @brief Create a deck info element for display.
+     * @param deck The deck to display.
+     * @return The element representing the deck info.
+     */
     Element makeDeckInfo(const ClientDeck& deck);
+    /**
+     * @brief Create a score info element for display.
+     * @param myTeamTotalScore The total score of the player's team.
+     * @param opponentTeamTotalScore The total score of the opponent's team.
+     * @param myTeamMeldPoints The meld points of the player's team.
+     * @param opponentTeamMeldPoints The meld points of the opponent's team.
+     * @param textColor1 The color for the first text.
+     * @param textColor2 The color for the second text.
+     * @return The element representing the score info.
+     */
     Element makeScoreInfo(int myTeamTotalScore, int opponentTeamTotalScore,
         int myTeamMeldPoints, int opponentTeamMeldPoints, Color textColor1, Color textColor2);
+    /**
+     * @brief Create a meld grid element for display.
+     * @param melds The meld views to display.
+     * @param frameColor The color for the frame.
+     * @return The element representing the meld grid.
+     */
     Element makeMeldGrid(const std::vector<MeldView>& melds, Color frameColor);
+    /**
+     * @brief Create a player info element for display.
+     * @param player The player public info to display.
+     * @return The element representing the player info.
+     */
     Element makePlayerInfo(const PlayerPublicInfo& player);
+    /**
+     * @brief Disable input for the console.
+     */
     void disableInput();
 };
 
