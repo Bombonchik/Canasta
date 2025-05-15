@@ -19,7 +19,7 @@ Once the game screen loads, you’ll see something like this:
 
 | # | Element                         | Description                                                                                             |
 |:-:|---------------------------------|---------------------------------------------------------------------------------------------------------|
-| 1 | **Player Name**                 | Your name (or another player’s), displayed at the top of each column.                                   |
+| 1 | **Player Name**                 | Your name (or another player’s).                                   |
 | 2 | **Hand Count**                  | The number of cards currently in that player’s hand.                                                    |
 | 3 | **Your Hand**                   | The cards in your hand.                                           |
 | 4 | **Your Team’s Melds**           | All melds your team has laid down so far.                                                   |
