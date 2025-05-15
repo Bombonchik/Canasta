@@ -4,14 +4,94 @@
 #include <string>
 #include "cereal/cereal.hpp"
 #include "cereal/archives/binary.hpp"
+#include "player_public_info.hpp"
+#include "player.hpp"           // Includes Hand, Card
+#include "team_round_state.hpp" // Includes Meld, ScoreBreakdown
+#include "client_deck.hpp"      // Public view of deck/discard state
+#include "rule_engine.hpp"      // For GameOutcome
+#include "score_details.hpp"     // For ScoreBreakdown
+#include <vector>
+#include <optional>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/optional.hpp>
 
-struct GameState {
-    int currentPlayer;
-    std::string publicMessage;
+/**
+ * @enum ClientGameOutcome
+ * @brief Enum representing the outcome of the game for the client.
+ */
+enum class ClientGameOutcome {
+    Win,
+    Lose,
+    Draw
+};
 
+/**
+ * @struct ClientGameState
+ * @brief Struct representing the game state visible to a client.
+ * @details This struct is used to send game state information to clients.
+ */
+struct ClientGameState {
+    /**
+     * @brief The state of the main deck and discard pile.
+     * @details This includes the size of the main deck, the top card of the discard pile,
+     *          the size of the discard pile, and whether the discard pile is frozen.
+     */
+    ClientDeck deckState;
+    /**
+     * @brief The player's data, full Player object (including Hand).
+     */
+    Player myPlayerData;
+
+    /**
+     * @brief Public information about all players in the game.
+     */
+    std::vector<PlayerPublicInfo> allPlayersPublicInfo; // Includes self and others
+
+    // Team States (Round Specific)
+    /**
+     * @brief The full round state for the player's team.
+     */
+    TeamRoundState myTeamState;
+    /**
+     * @brief The full round state for the opponent's team.
+     */
+    TeamRoundState opponentTeamState;
+
+    // Overall Game Scores
+    int myTeamTotalScore;       ///< Total score of the player's team
+    int opponentTeamTotalScore; ///< Total score of the opponent's team
+
+    bool isRoundOver = false; ///< Flag for round end
+    std::optional<ScoreBreakdown> myTeamScoreBreakdown; ///< Score breakdown for the player's team (only in round over)
+    std::optional<ScoreBreakdown> opponentTeamScoreBreakdown; ///< Score breakdown for the opponent's team (only in round over)
+
+    // Game Status
+    bool isGameOver = false; ///< Flag for game end
+    std::optional<ClientGameOutcome> gameOutcome; ///< Outcome of the game (only if game is over)
+
+    // Context
+    std::string lastActionDescription; ///< Description of the last successful action
+    std::optional<TurnActionStatus> status; ///< Status of the last action (if applicable)
+
+    /**
+     * @brief Default constructor for ClientGameState only for serialization purposes.
+     */
+    ClientGameState() = default;
+
+    /**
+     * @brief Serialize the ClientGameState object using Cereal.
+     */
     template <class Archive>
-    void serialize(Archive& archive) {
-        archive(currentPlayer, publicMessage);
+    void serialize(Archive& ar) {
+        ar(CEREAL_NVP(deckState), CEREAL_NVP(myPlayerData),
+            CEREAL_NVP(allPlayersPublicInfo), 
+            CEREAL_NVP(myTeamState), CEREAL_NVP(opponentTeamState),
+            CEREAL_NVP(myTeamTotalScore), CEREAL_NVP(opponentTeamTotalScore),
+            CEREAL_NVP(isRoundOver),
+            CEREAL_NVP(myTeamScoreBreakdown), CEREAL_NVP(opponentTeamScoreBreakdown),
+            CEREAL_NVP(isGameOver), CEREAL_NVP(gameOutcome),
+            CEREAL_NVP(lastActionDescription));
     }
 };
 
