@@ -30,7 +30,7 @@ Once the game screen loads, you’ll see something like this:
 
 > **Note:** When any meld reaches Canasta status, a **C** will appear at the bottom of that meld.
 
-- **Main Deck Size:** How many cards remain in the draw pile.  
+- **Main Deck Size:** How many cards remain in the main deck.  
 - **Top Discard Card:** The rank and suit of the card on top of the discard pile.
 
 
