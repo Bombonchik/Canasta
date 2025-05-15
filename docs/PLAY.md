@@ -5,7 +5,7 @@
 
 ## 1. Starting the Game
 
-1. Launch the server or client as described in the [**Installation guide**](INSTALL.md).
+1. Launch the server or client as described in the [Installation guide](INSTALL.md).
 2. When prompted, **enter your player name** and press **Enter**.  
 ![](images/image1.png)
 
