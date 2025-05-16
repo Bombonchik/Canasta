@@ -43,13 +43,21 @@ enum class ServerMessageType : uint8_t {
 };
 
 /**
- * @struct ActionError
- * @brief Struct representing an error message sent from the server to the client.
+ * @class ActionError
+ * @brief Class representing an error message sent from the server to the client.
  * @details Contains a message and an optional status code.
  */
-struct ActionError {
+class ActionError {
+private:
     std::string     message;
     std::optional<TurnActionStatus> status;
+public:
+    ActionError() = default; // Default constructor for serialization
+    ActionError(const std::string& msg, std::optional<TurnActionStatus> stat = std::nullopt)
+        : message(msg), status(stat) {}
+
+    const std::string& getMessage() const { return message; }
+    std::optional<TurnActionStatus> getStatus() const { return status; }
 
     template <class Archive>
     void serialize(Archive& ar) {

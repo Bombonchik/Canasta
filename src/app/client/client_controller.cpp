@@ -66,60 +66,64 @@ std::vector<MeldView> ClientController::getMeldViewsFromTeamRoundState(const Tea
 
 BoardState ClientController::getBoardState(const ClientGameState& gameState) const {
     BoardState boardState;
-    boardState.myTeamMelds = getMeldViewsFromTeamRoundState(gameState.myTeamState); // wrong temporary
-    boardState.opponentTeamMelds = getMeldViewsFromTeamRoundState(gameState.opponentTeamState);
-    boardState.myHand = gameState.myPlayerData.getHand();
-    boardState.deckState = gameState.deckState;
-    boardState.myPlayer = gameState.allPlayersPublicInfo[0]; // Assuming the first player is the current player
-    if (gameState.allPlayersPublicInfo.size() == 2) {
-        boardState.oppositePlayer = gameState.allPlayersPublicInfo[1]; // Assuming the second player is the opponent
-    } else if (gameState.allPlayersPublicInfo.size() == 4) {
-        boardState.leftPlayer = gameState.allPlayersPublicInfo[1]; // Assuming the second player is the left player
-        boardState.oppositePlayer = gameState.allPlayersPublicInfo[2]; // Assuming the third player is the opponent
-        boardState.rightPlayer = gameState.allPlayersPublicInfo[3]; // Assuming the fourth player is the right player
+    auto myTeamState = gameState.getMyTeamState().clone();
+    auto opponentTeamState = gameState.getOpponentTeamState().clone();
+    boardState.setMyTeamMelds(getMeldViewsFromTeamRoundState(myTeamState)); // wrong temporary
+    boardState.setOpponentTeamMelds(getMeldViewsFromTeamRoundState(opponentTeamState));
+    boardState.setMyHand(gameState.getMyPlayerData().getHand());
+    boardState.setDeckState(gameState.getDeckState());
+    auto allPlayersInfo = gameState.getAllPlayersPublicInfo();
+    boardState.setMyPlayer(allPlayersInfo[0]); // Assuming the first player is the current player
+    if (allPlayersInfo.size() == 2) {
+        boardState.setOppositePlayer(allPlayersInfo[1]); // Assuming the second player is the opponent
+    } else if (allPlayersInfo.size() == 4) {
+        boardState.setLeftPlayer(allPlayersInfo[1]); // Assuming the second player is the left player
+        boardState.setOppositePlayer(allPlayersInfo[2]); // Assuming the third player is the opponent
+        boardState.setRightPlayer(allPlayersInfo[3]); // Assuming the fourth player is the right player
     }
-    boardState.myTeamTotalScore = gameState.myTeamTotalScore;
-    boardState.opponentTeamTotalScore = gameState.opponentTeamTotalScore;
-    boardState.myTeamMeldPoints = gameState.myTeamState.calculateMeldPoints();
-    boardState.opponentTeamMeldPoints = gameState.opponentTeamState.calculateMeldPoints();
+    boardState.setMyTeamTotalScore(gameState.getMyTeamTotalScore());
+    boardState.setOpponentTeamTotalScore(gameState.getOpponentTeamTotalScore());
+    boardState.setMyTeamMeldPoints(myTeamState.calculateMeldPoints());
+    boardState.setOpponentTeamMeldPoints(opponentTeamState.calculateMeldPoints());
     return boardState;
 }
 
 ScoreState ClientController::getScoreState(const ClientGameState& gameState) const {
     ScoreState scoreState;
-    scoreState.myTeamScoreBreakdown = gameState.myTeamScoreBreakdown.value();
-    scoreState.opponentTeamScoreBreakdown = gameState.opponentTeamScoreBreakdown.value();
-    scoreState.playersCount = gameState.allPlayersPublicInfo.size();
-    scoreState.myTeamTotalScore = gameState.myTeamTotalScore;
-    scoreState.opponentTeamTotalScore = gameState.opponentTeamTotalScore;
-    scoreState.isGameOver = gameState.isGameOver;
-    scoreState.gameOutcome = gameState.gameOutcome;
+    scoreState.setMyTeamScoreBreakdown(gameState.getMyTeamScoreBreakdown().value());
+    scoreState.setOpponentTeamScoreBreakdown(gameState.getOpponentTeamScoreBreakdown().value());
+    scoreState.setPlayersCount(gameState.getAllPlayersPublicInfo().size());
+    scoreState.setMyTeamTotalScore(gameState.getMyTeamTotalScore());
+    scoreState.setOpponentTeamTotalScore(gameState.getOpponentTeamTotalScore());
+    scoreState.setIsGameOver(gameState.getIsGameOver());
+    scoreState.setGameOutcome(gameState.getGameOutcome());
     return scoreState;
 }
 
 // --- Callback Handlers from ClientNetwork (Stubs) ---
 void ClientController::handleGameStateUpdate(const ClientGameState& gameState) {
-    bool isMyTurn = gameState.allPlayersPublicInfo[0].isCurrentTurn;
+    bool isMyTurn = gameState.getAllPlayersPublicInfo()[0].isCurrentPlayer();
     currentBoardState = getBoardState(gameState);
+    auto status = gameState.getStatus();
     if (isMyTurn &&
-        !gameState.status.has_value() || // Turn started
-        (gameState.status.has_value() && gameState.status.value() == TurnActionStatus::Success_TurnContinues)) {
+        !status.has_value() || // Turn started
+        (status.has_value() && status.value() == TurnActionStatus::Success_TurnContinues)) {
         processPlayerTurn();
     } else {
         resetTurnActionStatuses();
-        if (gameState.isRoundOver) {
+        if (gameState.getIsRoundOver()) {
             view.showStaticScore(getScoreState(gameState));
-            if (!gameState.isGameOver)
+            if (!gameState.getIsGameOver())
                 std::this_thread::sleep_for(std::chrono::seconds(25));
         }
         else {
-            view.showStaticBoardWithMessages({gameState.lastActionDescription}, currentBoardState);
+            view.showStaticBoardWithMessages({gameState.getLastActionDescription()}, currentBoardState);
         }
     }
 }
 
 void ClientController::handleActionError(const ActionError& error) {
-    if (!error.status.has_value()) {
+    if (!error.getStatus().has_value()) {
         // Should not happen
         throw std::runtime_error("ActionError without status.");    
     }
@@ -137,16 +141,16 @@ void ClientController::handleActionError(const ActionError& error) {
 
     view.restoreInput();
     if (meldAttemptStatus == ActionAttemptStatus::Succeeded) {
-        return processAfterMelding(error.message);
+        return processAfterMelding(error.getMessage());
     } else if (takeDiscardPileAttemptStatus == ActionAttemptStatus::Succeeded) {
-        return processAfterTakingDiscardPile(error.message);
+        return processAfterTakingDiscardPile(error.getMessage());
     } else if (drawDeckAttemptStatus == ActionAttemptStatus::Succeeded) {
-        return processAfterDrawing(error.message);
+        return processAfterDrawing(error.getMessage());
     } else if (discardAttemptStatus == ActionAttemptStatus::Succeeded) {
         throw std::runtime_error("Discard attempt status should not be succeeded here.");
     } else if (drawDeckAttemptStatus == ActionAttemptStatus::NotAttempted && 
                 takeDiscardPileAttemptStatus == ActionAttemptStatus::NotAttempted) {
-        return promptAndProcessDrawCardOrTakeDiscardPile(error.message);
+        return promptAndProcessDrawCardOrTakeDiscardPile(error.getMessage());
     }
 }
 
@@ -227,11 +231,13 @@ void ClientController::processMelding(ActionAttemptStatus& previousAttemptStatus
         return processPlayerTurn(); // Go back
     }
     
+    auto myTeamMelds = currentBoardState.getMyTeamMelds();
     for (auto& meldRequest : meldRequests) {
-        if (meldRequest.addToRank.has_value() && meldRequest.addToRank.value() >= Rank::Four) {
-            const auto& meld = currentBoardState.myTeamMelds[static_cast<int>(meldRequest.addToRank.value()) - 2];
-            if (!meld.isInitialized)
-                meldRequest.addToRank = std::nullopt; // Reset to nullopt if not initialized
+        auto meldRequestRank = meldRequest.getRank();
+        if (meldRequestRank.has_value() && meldRequestRank.value() >= Rank::Four) {
+            const auto& meld = myTeamMelds[static_cast<int>(meldRequestRank.value()) - 2];
+            if (!meld.isInitialized())
+                meldRequest.setRank(std::nullopt); // Reset to nullopt if not initialized
         }
     }
 

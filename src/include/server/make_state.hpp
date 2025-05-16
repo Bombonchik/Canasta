@@ -22,35 +22,35 @@ inline ClientGameState makeClientGameState(
     std::optional<TurnActionStatus> status = std::nullopt
 ) {
     ClientGameState s;
-    s.deckState = roundManager.getClientDeck();
-    s.myPlayerData = player;
-    s.allPlayersPublicInfo = roundManager.getAllPlayersPublicInfo(player);
+    s.setDeckState(roundManager.getClientDeck());
+    s.setMyPlayerData(player);
+    s.setAllPlayersPublicInfo(roundManager.getAllPlayersPublicInfo(player));
     auto team1 = gameManager.getTeam1();
     auto team2 = gameManager.getTeam2();
     auto myTeam = team1.hasPlayer(player) ? team1 : team2;
     auto opponentTeam = team2.hasPlayer(player) ? team1 : team2;
-    s.myTeamState = roundManager.getTeamStateForTeam(myTeam);
-    s.opponentTeamState = roundManager.getTeamStateForTeam(opponentTeam);
-    s.myTeamTotalScore = myTeam.getTotalScore();
-    s.opponentTeamTotalScore = opponentTeam.getTotalScore();
-    s.isRoundOver = roundManager.isRoundOver();
-    if (s.isRoundOver) {
+    s.setMyTeamState(roundManager.getTeamStateForTeam(myTeam));
+    s.setOpponentTeamState(roundManager.getTeamStateForTeam(opponentTeam));
+    s.setMyTeamTotalScore(myTeam.getTotalScore());
+    s.setOpponentTeamTotalScore(opponentTeam.getTotalScore());
+    s.setIsRoundOver(roundManager.isRoundOver());
+    if (roundManager.isRoundOver()) {
         auto scoreMapping = roundManager.calculateScores();
-        s.myTeamScoreBreakdown = scoreMapping[myTeam.getName()];
-        s.opponentTeamScoreBreakdown = scoreMapping[opponentTeam.getName()];
+        s.setMyTeamScoreBreakdown(scoreMapping[myTeam.getName()]);
+        s.setOpponentTeamScoreBreakdown(scoreMapping[opponentTeam.getName()]);
     }
-    s.isGameOver = gameManager.isGameOver();
-    if (s.isGameOver) {
+    s.setIsGameOver(gameManager.isGameOver());
+    if (gameManager.isGameOver()) {
         auto winningTeam = gameManager.getWinningTeam();
         if (winningTeam.has_value()) {
-            s.gameOutcome = winningTeam->get().getName() == myTeam.getName() ? 
-            ClientGameOutcome::Win : ClientGameOutcome::Lose;
+            s.setGameOutcome(winningTeam->get().getName() == myTeam.getName() ? 
+            ClientGameOutcome::Win : ClientGameOutcome::Lose);
         } else {
-            s.gameOutcome = ClientGameOutcome::Draw;
+            s.setGameOutcome(ClientGameOutcome::Draw);
         }
     }
-    s.lastActionDescription = actionDescription;
-    s.status = status;
+    s.setLastActionDescription(actionDescription);
+    s.setStatus(status);
     return s;
 }
 

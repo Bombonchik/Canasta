@@ -135,12 +135,12 @@ void ServerNetwork::dispatchAction(const std::string& playerName, ActionFn&& act
         return;
     }
     TurnActionResult result = action(*rm);
-    if (result.status < TurnActionStatus::Error_MainDeckEmpty) {
+    if (result.getStatus() < TurnActionStatus::Error_MainDeckEmpty) {
         // success → broadcast the result.message
-        broadcastGameState(result.message, result.status);
+        broadcastGameState(result.getMessage(), result.getStatus());
     } else {
         // failure → send error back to just that player
-        sendActionError(playerName, result.message, result.status);
+        sendActionError(playerName, result.getMessage(), result.getStatus());
     }
 }
 

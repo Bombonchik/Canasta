@@ -7,18 +7,18 @@ bool RuleEngine::canDiscard(const Hand& playerHand, const Card& discardCard) {
     return playerHand.hasCard(discardCard);
 }
 
-int RuleEngine::getMinimumInitialMeldPoints(int teamTotalScore) {
-    // Calculate the minimum initial meld points based on the team's total score
-    if (teamTotalScore < 0) {
-        return 15;
-    } else if (teamTotalScore < 1500) {
-        return 50;
-    } else if (teamTotalScore < 3000) {
-        return 90;
-    } else {
-        return 120;
+    int RuleEngine::getMinimumInitialMeldPoints(int teamTotalScore) {
+        // Calculate the minimum initial meld points based on the team's total score
+        if (teamTotalScore < TEAM_SCORE_THRESHOLD_NONE) {
+            return MELD_POINTS_NEGATIVE;
+        } else if (teamTotalScore < TEAM_SCORE_THRESHOLD_LOW) {
+            return MELD_POINTS_LOW;
+        } else if (teamTotalScore < TEAM_SCORE_THRESHOLD_MEDIUM) {
+            return MELD_POINTS_MEDIUM;
+        } else {
+            return MELD_POINTS_HIGH;
+        }
     }
-}
 
 int RuleEngine::calculateCardPoints(const std::vector<Card>& cards) {
     // Calculate the total point value of a list of cards according to Canasta rules
@@ -34,7 +34,7 @@ std::expected<int, std::string> RuleEngine::validateRankMeldInitializationPropos
     int totalPoints = 0;
     for (const auto& proposal : proposals) {
         // Create and initialize the meld for the given rank
-        const auto meld = createAndInitializeRankMeld(proposal.cards, proposal.rank);
+        const auto meld = createAndInitializeRankMeld(proposal.getCards(), proposal.getRank());
         if (!meld.has_value())
             return std::unexpected(meld.error()); // Return the error message
         //spdlog::debug("Meld created for rank {}: {} cards, {} points", (*meld)->isInitialized(), (*meld)->getCards().size(), (*meld)->getPoints());
@@ -47,7 +47,7 @@ Status RuleEngine::validateBlackThreeMeldInitializationProposal(
 const BlackThreeMeldProposal& blackThreeProposal, const TeamRoundState& teamRoundState) {
     const auto blackThreeMeld = teamRoundState.getBlackThreeMeld();
     assert(blackThreeMeld && "Black Three meld is null");
-    auto status = blackThreeMeld->checkInitialization(blackThreeProposal.cards);
+    auto status = blackThreeMeld->checkInitialization(blackThreeProposal.getCards());
     if (!status.has_value())
         return std::unexpected(status.error());
     return {}; // Successss
@@ -58,7 +58,8 @@ Status RuleEngine::validateRankMeldAdditionProposals(
     const TeamRoundState& teamRoundState) {
     for (const auto& proposal : proposals) {
 
-        auto status = RuleEngine::checkCardsAddition(proposal.cards, proposal.rank, teamRoundState);
+        auto status = RuleEngine::checkCardsAddition
+        (proposal.getCards(), proposal.getRank(), teamRoundState);
         if (!status.has_value())
             return std::unexpected(status.error());
     }

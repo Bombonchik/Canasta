@@ -410,7 +410,7 @@ void ClientNetwork::invokeActionErrorCallback(const ActionError& actionError) {
             spdlog::error("Exception in onActionErrorCallback: {}", e.what());
         }
     } else {
-        spdlog::warn("Received ActionError ('{}') but no callback is set.", actionError.message);
+        spdlog::warn("Received ActionError ('{}') but no callback is set.", actionError.getMessage());
     }
 }
 

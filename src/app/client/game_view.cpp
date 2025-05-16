@@ -8,22 +8,24 @@ GameView::GameView(): console(), screen(ScreenInteractive::TerminalOutput()) {
 Element GameView::makeBoard(const BoardState& boardState) {
     const auto myColor = Color::LightSlateBlue;
     const auto oppColor = Color::LightGreenBis; 
-    auto myMeldGrid = makeMeldGrid(boardState.myTeamMelds, myColor);
-    auto opponentMeldGrid = makeMeldGrid(boardState.opponentTeamMelds, oppColor);
-    auto myHandRow = makeHandGrid(boardState.myHand);
-    auto deckInfo = makeDeckInfo(boardState.deckState);
-    auto scoreInfo = makeScoreInfo(boardState.myTeamTotalScore,
-        boardState.opponentTeamTotalScore,
-        boardState.myTeamMeldPoints,
-        boardState.opponentTeamMeldPoints,
+    auto myMeldGrid = makeMeldGrid(boardState.getMyTeamMelds(), myColor);
+    auto opponentMeldGrid = makeMeldGrid(boardState.getOpponentTeamMelds(), oppColor);
+    auto myHandRow = makeHandGrid(boardState.getMyHand());
+    auto deckInfo = makeDeckInfo(boardState.getDeckState());
+    auto scoreInfo = makeScoreInfo(boardState.getMyTeamTotalScore(),
+        boardState.getOpponentTeamTotalScore(),
+        boardState.getMyTeamMeldPoints(),
+        boardState.getOpponentTeamMeldPoints(),
         myColor, oppColor
     );
-    auto myPlayerInfo = makePlayerInfo(boardState.myPlayer);
-    auto opponentPlayerInfo = makePlayerInfo(boardState.oppositePlayer);
-    auto leftPlayerInfo = boardState.leftPlayer.has_value() ?
-        makePlayerInfo(boardState.leftPlayer.value()) : text(" ");
-    auto rightPlayerInfo = boardState.rightPlayer.has_value() ?
-        makePlayerInfo(boardState.rightPlayer.value()) : text(" ");
+    auto myPlayerInfo = makePlayerInfo(boardState.getMyPlayer());
+    auto opponentPlayerInfo = makePlayerInfo(boardState.getOppositePlayer());
+    auto leftPlayer = boardState.getLeftPlayer();
+    auto leftPlayerInfo = leftPlayer.has_value() ?
+        makePlayerInfo(leftPlayer.value()) : text(" ");
+    auto rightPlayer = boardState.getRightPlayer();
+    auto rightPlayerInfo = rightPlayer.has_value() ?
+        makePlayerInfo(rightPlayer.value()) : text(" ");
 
     // 4) Combine in a vertical stack
     return vbox({
@@ -52,7 +54,7 @@ Element GameView::makeBoard(const BoardState& boardState) {
 Element GameView::makeMeldGrid(const std::vector<MeldView>& melds, Color frameColor) {
     std::vector<MeldView> meldsToPrint;
     for (auto& meld : melds) {
-        if (!meld.isInitialized)
+        if (!meld.isInitialized())
             continue;
         meldsToPrint.push_back(meld);
     }
@@ -67,30 +69,32 @@ Element GameView::makeMeldGrid(const std::vector<MeldView>& melds, Color frameCo
         std::vector<Element> cells;
 
         for (auto& meld : meldsToPrint) {
-            if (!meld.isInitialized)
+            if (!meld.isInitialized())
                 continue;
             // not first meld
-            if (meld.rank != meldsToPrint.front().rank)
+            if (meld.getRank() != meldsToPrint.front().getRank())
                 cells.push_back(separator() | color(frameColor));
+            
+            auto& meldCards = meld.getCards();
 
             // 1) true canasta indicator: if they have ≥7 cards, on the 8th row show 'C'
-            if (meld.cards.size() >= 7 && row == 7) {
+            if (meldCards.size() >= 7 && row == 7) {
                 cells.push_back(text(" C ") | color(frameColor) | flex_grow);
                 continue;
             }
 
             // 2) otherwise if this row falls inside the number of cards
-            if (row < meld.cards.size()) {
+            if (row < meldCards.size()) {
                 // a) small meld <7 cards ⇒ show the card at index = row
-                if (meld.cards.size() < 7) {
-                    cells.push_back(makeCardElement(meld.cards[row], true));
+                if (meldCards.size() < 7) {
+                    cells.push_back(makeCardElement(meldCards[row], true));
 
                 } else {
                     if (row == 0) {
-                        cells.push_back(makeCardElement(meld.cards.front(), true));
+                        cells.push_back(makeCardElement(meldCards.front(), true));
                     } else if (row == 1 &&
-                            meld.cards.front().getRank() != meld.cards.back().getRank()) {
-                        cells.push_back(makeCardElement(meld.cards.back(), true));
+                            meldCards.front().getRank() != meldCards.back().getRank()) {
+                        cells.push_back(makeCardElement(meldCards.back(), true));
                     } else {
                         cells.push_back(text("   ") | flex_grow);
                     }
@@ -177,8 +181,7 @@ Element GameView::makeDeckInfo(const ClientDeck& deck) {
 }
 
 CardView GameView::getCardView(const Card& card) {
-    CardView cardView;
-    cardView.color = card.getColor() == CardColor::RED ? 
+    auto cardViewColor = card.getColor() == CardColor::RED ? 
     Color::RedLight : Color::White;
     std::string cardToPrint = "";
     auto rank = card.getRank();
@@ -197,8 +200,7 @@ CardView GameView::getCardView(const Card& card) {
     } else if (rank == Rank::Ace) {
         cardToPrint = "A";
     }
-    cardView.label = cardToPrint;
-    return cardView;
+    return CardView(cardToPrint, cardViewColor);
 }
 
 Element GameView::makeCardElement(const Card& card, bool padded) {
@@ -207,12 +209,12 @@ Element GameView::makeCardElement(const Card& card, bool padded) {
 
     // 2) pick whether to pad or not
     std::string label = padded
-    ? " " + cv.label + " "
-    : cv.label;
+    ? " " + cv.getLabel() + " "
+    : cv.getLabel();
 
     // 3) build & return the styled element
     return text(label)
-        | color(cv.color)
+        | color(cv.getColor())
         | flex_grow;
 }
 
@@ -310,8 +312,8 @@ Element GameView::makeScoreInfo(int myTeamTotalScore, int opponentTeamTotalScore
 
 Element GameView::makePlayerInfo(const PlayerPublicInfo& player) {
     return hbox({
-        text(player.name) | bold | (player.isCurrentTurn ? color(Color::Cyan) : color(Color::White)),
-        text(", " + std::to_string(player.handCardCount)) | bold | (player.isCurrentTurn ? color(Color::Cyan) : color(Color::White)),
+        text(player.getName()) | bold | (player.isCurrentPlayer() ? color(Color::Cyan) : color(Color::White)),
+        text(", " + std::to_string(player.getHandCardCount())) | bold | (player.isCurrentPlayer() ? color(Color::Cyan) : color(Color::White)),
     });
 }
 
@@ -321,9 +323,8 @@ void GameView::showStaticScore(const ScoreState& scoreState) {
     disableInput();
 
     // 2) References to your two score‐breakdowns
-    const auto& sb  = scoreState.myTeamScoreBreakdown;
-    const auto& osb = scoreState.opponentTeamScoreBreakdown;
-
+    const auto& sb  = scoreState.getMyTeamScoreBreakdown();
+    const auto& osb = scoreState.getOpponentTeamScoreBreakdown();
     // 3) Build a grid of Elements: each inner vector is a row
     std::vector<Element> columnNames;
     std::vector<Element> team1Scores;
@@ -352,35 +353,36 @@ void GameView::showStaticScore(const ScoreState& scoreState) {
     };
 
     // 4) Populate all the rows in the exact order you want
-    addRow("Natural",     sb.naturalCanastaBonus,   osb.naturalCanastaBonus);
-    addRow("Mixed",       sb.mixedCanastaBonus,     osb.mixedCanastaBonus);
-    addRow("Melded",      sb.meldedCardsPoints,     osb.meldedCardsPoints);
-    addRow("Red threes",  sb.redThreeBonusPoints,   osb.redThreeBonusPoints);
-    addRow("On hands",    sb.handPenaltyPoints,     osb.handPenaltyPoints);
-    addRow("Going out",   sb.goingOutBonus,         osb.goingOutBonus);
+    addRow("Natural",     sb.getNaturalCanastaBonus(),   osb.getNaturalCanastaBonus());
+    addRow("Mixed",       sb.getMixedCanastaBonus(),     osb.getMixedCanastaBonus());
+    addRow("Melded",      sb.getMeldedCardsPoints(),     osb.getMeldedCardsPoints());
+    addRow("Red threes",  sb.getRedThreeBonusPoints(),   osb.getRedThreeBonusPoints());
+    addRow("On hands",    sb.getHandPenaltyPoints(),     osb.getHandPenaltyPoints());
+    addRow("Going out",   sb.getGoingOutBonus(),         osb.getGoingOutBonus());
 
     // Round total & Game total (bold)
     addRow("Round Total", sb.calculateTotal(), osb.calculateTotal());
 
     addRow("Game Total",
-        scoreState.myTeamTotalScore,
-        scoreState.opponentTeamTotalScore
+        scoreState.getMyTeamTotalScore(),
+        scoreState.getOpponentTeamTotalScore()
     );
 
     std::string outcome;
     // Optional outcome line
-    if (scoreState.isGameOver && scoreState.gameOutcome.has_value()) {
-        if (scoreState.playersCount == 2) {
-        if (*scoreState.gameOutcome == ClientGameOutcome::Win)
+    auto maybeGameOutcome = scoreState.getGameOutcome();
+    if (scoreState.getIsGameOver() && maybeGameOutcome.has_value()) {
+        if (scoreState.getPlayersCount() == 2) {
+        if (*maybeGameOutcome == ClientGameOutcome::Win)
             outcome = "You win!";
-        else if (*scoreState.gameOutcome == ClientGameOutcome::Lose)
+        else if (*maybeGameOutcome == ClientGameOutcome::Lose)
             outcome = "You lose";
         else
             outcome = "Draw";
         } else {
-        if (*scoreState.gameOutcome == ClientGameOutcome::Win)
+        if (*maybeGameOutcome == ClientGameOutcome::Win)
             outcome = "Your team wins!";
-        else if (*scoreState.gameOutcome == ClientGameOutcome::Lose)
+        else if (*maybeGameOutcome == ClientGameOutcome::Lose)
             outcome = "Your team loses";
         else
             outcome = "Draw";
@@ -508,7 +510,7 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
     localScreen.TrackMouse(false);
     bool shouldUpdate = true;
     // 1) Mutable hand + map for meld‐requests
-    Hand working = boardState.myHand;
+    Hand working = boardState.getMyHand();
     std::map<Rank, MeldRequest> requestMap;
 
     // 2) Wizard state
@@ -531,7 +533,7 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
     for (auto& c : working.getCards())
         if (c.getRank() == r) ++cnt;
     Card dummy{r, CardColor::BLACK};
-        return getCardView(dummy).label + " (" + std::to_string(cnt) + ")";
+        return getCardView(dummy).getLabel() + " (" + std::to_string(cnt) + ")";
     };
     auto bucket_for = [&](Rank r) {
         std::vector<Card> bucket;
@@ -578,7 +580,7 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
 
         Card dummy{r, CardColor::BLACK};
         lines.push_back(text("Pick cards for `"
-                        + getCardView(dummy).label +"`:"));
+                        + getCardView(dummy).getLabel() +"`:"));
         for (std::size_t i = 0; i < vis; ++i) {
             std::size_t idx = i + cardScroll;
             if (idx >= n) break;
@@ -665,9 +667,8 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
                 if (!picked.empty()) {
                     Rank natural = *currentRank;
                     auto &mr = requestMap[natural];
-                    mr.addToRank = natural;
-                    mr.cards.insert(mr.cards.end(),
-                                    picked.begin(), picked.end());
+                    mr.setRank(natural);
+                    mr.appendCards(picked);
                     for (auto& c : picked)
                         working.removeCard(c);
                 }
@@ -702,7 +703,7 @@ Card GameView::runDiscardWizard(const BoardState& boardState) {
     localScreen.TrackMouse(false);
     bool shouldUpdate = true;
     // 1) Working copy of the hand
-    Hand working = boardState.myHand;
+    Hand working = boardState.getMyHand();
 
     // 2) Build a dynamic list of ranks present in hand
     std::vector<Rank> ranks;
@@ -731,7 +732,7 @@ Card GameView::runDiscardWizard(const BoardState& boardState) {
     for (auto& c : working.getCards())
         if (c.getRank() == r) ++cnt;
     Card dummy{r, CardColor::BLACK};
-    return getCardView(dummy).label + " (" + std::to_string(cnt) + ")";
+    return getCardView(dummy).getLabel() + " (" + std::to_string(cnt) + ")";
     };
 
     // Helper: cards for a rank
@@ -775,7 +776,7 @@ Card GameView::runDiscardWizard(const BoardState& boardState) {
 
         Card dummy{r, CardColor::BLACK};
         lines.push_back(text("Pick one `" +
-            getCardView(dummy).label + "` to discard:"));
+            getCardView(dummy).getLabel() + "` to discard:"));
 
         for (std::size_t i = 0; i < vis; ++i) {
             std::size_t idx = i + cardScroll;

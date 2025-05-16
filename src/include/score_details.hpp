@@ -7,10 +7,11 @@
 
 // Holds the breakdown of points scored by a team in a single round
 /**
- * @struct ScoreBreakdown
- * @brief Struct representing the breakdown of points scored by a team in a single round.
+ * @class ScoreBreakdown
+ * @brief Class representing the breakdown of points scored by a team in a single round.
  */
-struct ScoreBreakdown {
+class ScoreBreakdown {
+private:
     /**
      * @brief Total bonus for Natural Canastas (N * 500)
      */
@@ -36,8 +37,26 @@ struct ScoreBreakdown {
      * @brief Bonus for going out (100 points if going out)
      */
     int goingOutBonus = 0;
+    
+public:
 
     ScoreBreakdown() = default;
+
+    // Getters
+    int getNaturalCanastaBonus() const { return naturalCanastaBonus; }
+    int getMixedCanastaBonus() const { return mixedCanastaBonus; }
+    int getMeldedCardsPoints() const { return meldedCardsPoints; }
+    int getRedThreeBonusPoints() const { return redThreeBonusPoints; }
+    int getHandPenaltyPoints() const { return handPenaltyPoints; }
+    int getGoingOutBonus() const { return goingOutBonus; }
+
+    // Setters
+    void setNaturalCanastaBonus(int bonus) { naturalCanastaBonus = bonus; }
+    void setMixedCanastaBonus(int bonus) { mixedCanastaBonus = bonus; }
+    void setMeldedCardsPoints(int points) { meldedCardsPoints = points; }
+    void setRedThreeBonusPoints(int points) { redThreeBonusPoints = points; }
+    void setHandPenaltyPoints(int points) { handPenaltyPoints = points; }
+    void setGoingOutBonus(int bonus) { goingOutBonus = bonus; }
 
     /**
      * @brief Calculate the total score based on the breakdown.

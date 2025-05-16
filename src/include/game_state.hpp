@@ -27,11 +27,12 @@ enum class ClientGameOutcome {
 };
 
 /**
- * @struct ClientGameState
- * @brief Struct representing the game state visible to a client.
- * @details This struct is used to send game state information to clients.
+ * @class ClientGameState
+ * @brief Class representing the game state visible to a client.
+ * @details This class is used to send game state information to clients.
  */
-struct ClientGameState {
+class ClientGameState {
+private:
     /**
      * @brief The state of the main deck and discard pile.
      * @details This includes the size of the main deck, the top card of the discard pile,
@@ -74,10 +75,43 @@ struct ClientGameState {
     std::string lastActionDescription; ///< Description of the last successful action
     std::optional<TurnActionStatus> status; ///< Status of the last action (if applicable)
 
+public:
     /**
      * @brief Default constructor for ClientGameState only for serialization purposes.
      */
     ClientGameState() = default;
+
+    // Setters
+    void setDeckState(const ClientDeck& deck) { deckState = deck; }
+    void setMyPlayerData(const Player& player) { myPlayerData = player; }
+    void setAllPlayersPublicInfo(const std::vector<PlayerPublicInfo>& players) { allPlayersPublicInfo = players; }
+    void setMyTeamState(const TeamRoundState& teamState) { myTeamState = teamState.clone(); }
+    void setOpponentTeamState(const TeamRoundState& teamState) { opponentTeamState = teamState.clone(); }
+    void setMyTeamTotalScore(int score) { myTeamTotalScore = score; }
+    void setOpponentTeamTotalScore(int score) { opponentTeamTotalScore = score; }
+    void setIsRoundOver(bool roundOver) { isRoundOver = roundOver; }
+    void setMyTeamScoreBreakdown(const ScoreBreakdown& breakdown) { myTeamScoreBreakdown = breakdown; }
+    void setOpponentTeamScoreBreakdown(const ScoreBreakdown& breakdown) { opponentTeamScoreBreakdown = breakdown; }
+    void setIsGameOver(bool gameOver) { isGameOver = gameOver; }
+    void setGameOutcome(ClientGameOutcome outcome) { gameOutcome = outcome; }
+    void setLastActionDescription(const std::string& description) { lastActionDescription = description; }
+    void setStatus(std::optional<TurnActionStatus> actionStatus) { status = actionStatus; }
+
+    // Getters
+    const ClientDeck& getDeckState() const { return deckState; }
+    const Player& getMyPlayerData() const { return myPlayerData; }
+    const std::vector<PlayerPublicInfo>& getAllPlayersPublicInfo() const { return allPlayersPublicInfo; }
+    const TeamRoundState& getMyTeamState() const { return myTeamState; }
+    const TeamRoundState& getOpponentTeamState() const { return opponentTeamState; }
+    int getMyTeamTotalScore() const { return myTeamTotalScore; }
+    int getOpponentTeamTotalScore() const { return opponentTeamTotalScore; }
+    bool getIsRoundOver() const { return isRoundOver; }
+    const std::optional<ScoreBreakdown>& getMyTeamScoreBreakdown() const { return myTeamScoreBreakdown; }
+    const std::optional<ScoreBreakdown>& getOpponentTeamScoreBreakdown() const { return opponentTeamScoreBreakdown; }
+    bool getIsGameOver() const { return isGameOver; }
+    const std::optional<ClientGameOutcome>& getGameOutcome() const { return gameOutcome; }
+    const std::string& getLastActionDescription() const { return lastActionDescription; }
+    const std::optional<TurnActionStatus>& getStatus() const { return status; }
 
     /**
      * @brief Serialize the ClientGameState object using Cereal.

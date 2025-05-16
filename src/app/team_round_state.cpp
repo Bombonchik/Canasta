@@ -89,7 +89,7 @@ int TeamRoundState::calculateMeldPoints() const {
         });
 }
 
-// Calculate the detailed score breakdown for the round except for the going out bonus
+// Calculate the detailed score breakdown for the round
 ScoreBreakdown TeamRoundState::getScoreBreakdown(int goingOutBonus) const {
     ScoreBreakdown breakdown;
 
@@ -108,7 +108,8 @@ ScoreBreakdown TeamRoundState::getScoreBreakdown(int goingOutBonus) const {
         if (i == RED_THREE_MELD_INDEX) {
             // Points from RedThreeMeld are bonus points
             // If the team hasn't made an initial meld, make the points negative
-            breakdown.redThreeBonusPoints += meldTotalPoints * (hasMadeInitialRankMeld() ? 1 : -1);
+            auto currentMeldRedThreeBonusPoints = meldTotalPoints * (hasMadeInitialRankMeld() ? 1 : -1);
+            breakdown.setRedThreeBonusPoints(breakdown.getRedThreeBonusPoints() + currentMeldRedThreeBonusPoints);
             continue; // Skip further processing for this meld
         }
 
@@ -117,18 +118,19 @@ ScoreBreakdown TeamRoundState::getScoreBreakdown(int goingOutBonus) const {
             std::optional<CanastaType> type = meldPtr->getCanastaType();
             if (type == CanastaType::Natural) {
                 canastaBonus = NATURAL_CANASTA_BONUS;
-                breakdown.naturalCanastaBonus += canastaBonus;
+                breakdown.setNaturalCanastaBonus(breakdown.getNaturalCanastaBonus() + canastaBonus);
             } else if (type == CanastaType::Mixed) {
                 canastaBonus = MIXED_CANASTA_BONUS;
-                breakdown.mixedCanastaBonus += canastaBonus;
+                breakdown.setMixedCanastaBonus(breakdown.getMixedCanastaBonus() + canastaBonus);
             }
             // else: Should not happen if isCanastaMeld is true, handle error?
         }
         // Card points are the total points minus any canasta bonus
-        breakdown.meldedCardsPoints += (meldTotalPoints - canastaBonus);
+        auto currentMelededCardsPoints = meldTotalPoints - canastaBonus;
+        breakdown.setMeldedCardsPoints(breakdown.getMeldedCardsPoints() + currentMelededCardsPoints);
     }
 
-    breakdown.goingOutBonus = goingOutBonus;
+    breakdown.setGoingOutBonus(goingOutBonus);
 
     return breakdown;
 }

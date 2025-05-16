@@ -24,30 +24,72 @@ enum class CandidateMeldType {
 };
 
 /**
- * @struct MeldSuggestion
- * @brief Struct representing a meld suggestion for meld initialization.
+ * @class MeldSuggestion
+ * @brief Class representing a meld suggestion for meld initialization.
  */
-struct MeldSuggestion {
+class MeldSuggestion {
+private:
     CandidateMeldType type;  ///< Type of meld (Black Three or normal rank meld)
     // only set when it is normal Meld
     std::optional<Rank> rank; ///< Rank of the meld (nullopt for Black Three)
+public:
+    MeldSuggestion(CandidateMeldType type, std::optional<Rank> rank = std::nullopt)
+        : type(type), rank(rank) {}
+
+    /**
+     * @brief Get the type of meld.
+     * @return The type of meld.
+     */
+    CandidateMeldType getType() const { return type; }
+
+    /**
+     * @brief Get the rank of the meld.
+     * @return The rank of the meld (nullopt if not applicable).
+     */
+    std::optional<Rank> getRank() const { return rank; }
 };
 
 /**
- * @struct RankMeldProposal
- * @brief Struct representing a proposal of initialization or addition cards to a meld of a specific rank.
+ * @class RankMeldProposal
+ * @brief Class representing a proposal of initialization or addition cards to a meld of a specific rank.
  */
-struct RankMeldProposal {
+class RankMeldProposal {
+private:
     std::vector<Card>    cards;  ///< the exact cards to be melded
     Rank                 rank;   ///< the rank of the meld
+public:
+    RankMeldProposal(const std::vector<Card>& cards, Rank rank)
+        : cards(cards), rank(rank) {}
+
+    /**
+     * @brief Get the rank of the meld.
+     * @return The rank of the meld.
+     */
+    Rank getRank() const { return rank; }
+
+    /**
+     * @brief Get the cards to be melded.
+     * @return A vector of cards to be melded.
+     */
+    const std::vector<Card>& getCards() const { return cards; }
 };
 
 /**
- * @struct BlackThreeMeldProposal
- * @brief Struct representing a proposal of initialization of a Black Three meld.
+ * @class BlackThreeMeldProposal
+ * @brief Class representing a proposal of initialization of a Black Three meld.
  */
-struct BlackThreeMeldProposal {
+class BlackThreeMeldProposal {
+private:
     std::vector<Card> cards; ///< the exact cards to be melded
+public:
+    BlackThreeMeldProposal(const std::vector<Card>& cards)
+        : cards(cards) {}
+
+    /**
+     * @brief Get the cards to be melded.
+     * @return A vector of cards to be melded.
+     */
+    const std::vector<Card>& getCards() const { return cards; }
 };
 
 /**
@@ -60,14 +102,36 @@ enum class MeldCommitmentType {
 };
 
 /**
- * @struct MeldCommitment
- * @brief Struct representing a meld commitment.
- * @details This struct is used to follow the rules when player takes the discard pile.
+ * @class MeldCommitment
+ * @brief Class representing a meld commitment.
+ * @details This class is used to follow the rules when player takes the discard pile.
  */
-struct MeldCommitment {
+class MeldCommitment {
+private:
     MeldCommitmentType type;   ///< whether to initialize a new meld or add to an existing one
     Rank               rank;   ///< which rank the player is committing to
     std::size_t       count;   ///< how many cards of that rank should be used during turn
+public:
+    MeldCommitment(MeldCommitmentType type, Rank rank, std::size_t count)
+        : type(type), rank(rank), count(count) {}
+
+    /**
+     * @brief Get the type of meld commitment.
+     * @return The type of meld commitment.
+     */
+    MeldCommitmentType getType() const { return type; }
+
+    /**
+     * @brief Get the rank of the meld commitment.
+     * @return The rank of the meld commitment.
+     */
+    Rank getRank() const { return rank; }
+
+    /**
+     * @brief Get the count of cards in the meld commitment.
+     * @return The count of cards in the meld commitment.
+     */
+    std::size_t getCount() const { return count; }
 };
 
 /**
@@ -97,12 +161,28 @@ enum class TurnActionStatus {
 };
 
 /**
- * @struct TurnActionResult
- * @brief Struct representing the result of a player's action during their turn.
+ * @class TurnActionResult
+ * @brief Class representing the result of a player's action during their turn.
  */
-struct TurnActionResult {
+class TurnActionResult {
+private:
     TurnActionStatus status; ///< Status of the action
     std::string     message; ///< Message describing the result
+public:
+    TurnActionResult(TurnActionStatus status, const std::string& message)
+        : status(status), message(message) {}
+
+    /**
+     * @brief Get the status of the action.
+     * @return The status of the action.
+     */
+    TurnActionStatus getStatus() const { return status; }
+
+    /**
+     * @brief Get the message describing the result.
+     * @return The message describing the result.
+     */
+    const std::string& getMessage() const { return message; }
 };
 
 /**
@@ -200,6 +280,13 @@ public:
     static std::vector<T> randomRotate(std::vector<T> vec);
 
 private:
+    static constexpr int MELD_POINTS_NEGATIVE  =  15;
+    static constexpr int MELD_POINTS_LOW       =  50;
+    static constexpr int MELD_POINTS_MEDIUM    =  90;
+    static constexpr int MELD_POINTS_HIGH      = 120;
+    static constexpr int TEAM_SCORE_THRESHOLD_NONE    =    0;
+    static constexpr int TEAM_SCORE_THRESHOLD_LOW     = 1500;
+    static constexpr int TEAM_SCORE_THRESHOLD_MEDIUM  = 3000;
     // Helper to get the minimum initial meld points based on score
     /**
      * @brief Gets the minimum initial meld points based on the team's total score.

@@ -325,12 +325,29 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Queen>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::King>)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(BaseMeld, Meld<Rank::Ace>)
 
-struct MeldRequest {
+class MeldRequest {
+private:
     std::vector<Card> cards;
     std::optional<Rank> addToRank;
       // - nullopt = “I want to initialize a NEW meld”
       // - Rank    = “I want to add these cards to the existing meld of rank addToRank”
+public:
+    /**
+     * @brief Default constructor for MeldRequest for serialization purposes.
+     */
+    MeldRequest() = default;
 
+    MeldRequest(const std::vector<Card>& cards, std::optional<Rank> addToRank)
+        : cards(cards), addToRank(addToRank) {}
+
+    const std::vector<Card>& getCards() const { return cards; }
+    std::optional<Rank> getRank() const { return addToRank; }
+    void setRank(std::optional<Rank> rank) { addToRank = rank; }
+    void appendCards(std::vector<Card> more) {
+        cards.insert(cards.end(),
+                    std::make_move_iterator(more.begin()),
+                    std::make_move_iterator(more.end()));
+    }
     // Add Cereal serialize method
     template <class Archive>
     void serialize(Archive& ar) {
