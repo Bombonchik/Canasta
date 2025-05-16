@@ -59,13 +59,12 @@ Element GameView::makeMeldGrid(const std::vector<MeldView>& melds, Color frameCo
         meldsToPrint.push_back(meld);
     }
     std::vector<Element> rows;
-    constexpr std::size_t maxRows = 8;
 
     if (meldsToPrint.empty()) {
         return text(" ") | color(frameColor);
     }
 
-    for (std::size_t row = 0; row < maxRows; ++row) {
+    for (std::size_t row = 0; row < MAX_MELD_GRID_ROWS; ++row) {
         std::vector<Element> cells;
 
         for (auto& meld : meldsToPrint) {
@@ -77,16 +76,16 @@ Element GameView::makeMeldGrid(const std::vector<MeldView>& melds, Color frameCo
             
             auto& meldCards = meld.getCards();
 
-            // 1) true canasta indicator: if they have ≥7 cards, on the 8th row show 'C'
-            if (meldCards.size() >= 7 && row == 7) {
+            // 1) true canasta indicator: if it is canasta, on the last row show 'C'
+            if (meldCards.size() >= MIN_CANASTA_SIZE && row == MIN_CANASTA_SIZE) {
                 cells.push_back(text(" C ") | color(frameColor) | flex_grow);
                 continue;
             }
 
             // 2) otherwise if this row falls inside the number of cards
             if (row < meldCards.size()) {
-                // a) small meld <7 cards ⇒ show the card at index = row
-                if (meldCards.size() < 7) {
+                // a) common meld
+                if (meldCards.size() < MIN_CANASTA_SIZE) {
                     cells.push_back(makeCardElement(meldCards[row], true));
 
                 } else {
@@ -161,6 +160,15 @@ Element GameView::makeHandGrid(const Hand& hand) {
     auto cardsElement = hbox(std::move(columns)) | border;
     
     return cardsElement;
+}
+
+std::optional<std::size_t> BoardState::getMeldIndexForRank(Rank rank) {
+    int rankInt = static_cast<int>(rank);
+    if (rankInt >= static_cast<int>(Rank::Four) && rankInt <= static_cast<int>(Rank::Ace)) {
+        // Rank::Four (4) maps to index 2, Rank::Ace (14) maps to index 12
+        return static_cast<std::size_t>(rankInt - static_cast<int>(Rank::Four) + RANK_MELD_OFFSET);
+    }
+    return std::nullopt; // Invalid rank for a standard meld
 }
 
 
@@ -243,7 +251,7 @@ std::string GameView::promptString(const std::string& question, std::string& pla
     screen.Loop(renderer);
     disableInput();
     // 4) buffer now holds the final text
-    return buffer.substr(0, std::min<int>(buffer.size(), 10));
+    return buffer.substr(0, std::min<int>(buffer.size(), MAX_NAME_LENGTH));
 }
 
 void GameView::disableInput() {
@@ -269,7 +277,7 @@ void GameView::showStaticBoardWithMessages(
         lines.push_back(text(m));
     auto messagePane =
     vbox(std::move(lines))
-    | size(HEIGHT, EQUAL, (int)messages.size() + 2);
+    | size(HEIGHT, EQUAL, (int)messages.size() + PADDING_WITH_MESSAGE);
 
     // 4) Compose full layout
     auto document = vbox({
@@ -372,20 +380,20 @@ void GameView::showStaticScore(const ScoreState& scoreState) {
     // Optional outcome line
     auto maybeGameOutcome = scoreState.getGameOutcome();
     if (scoreState.getIsGameOver() && maybeGameOutcome.has_value()) {
-        if (scoreState.getPlayersCount() == 2) {
-        if (*maybeGameOutcome == ClientGameOutcome::Win)
-            outcome = "You win!";
-        else if (*maybeGameOutcome == ClientGameOutcome::Lose)
-            outcome = "You lose";
-        else
-            outcome = "Draw";
+        if (scoreState.getPlayersCount() == RuleEngine::TWO_PLAYERS_GAME) {
+            if (*maybeGameOutcome == ClientGameOutcome::Win)
+                outcome = "You win!";
+            else if (*maybeGameOutcome == ClientGameOutcome::Lose)
+                outcome = "You lose";
+            else
+                outcome = "Draw";
         } else {
-        if (*maybeGameOutcome == ClientGameOutcome::Win)
-            outcome = "Your team wins!";
-        else if (*maybeGameOutcome == ClientGameOutcome::Lose)
-            outcome = "Your team loses";
-        else
-            outcome = "Draw";
+            if (*maybeGameOutcome == ClientGameOutcome::Win)
+                outcome = "Your team wins!";
+            else if (*maybeGameOutcome == ClientGameOutcome::Lose)
+                outcome = "Your team loses";
+            else
+                outcome = "Draw";
         }
     } else {
         outcome = "Waiting for next round...";
@@ -397,7 +405,7 @@ void GameView::showStaticScore(const ScoreState& scoreState) {
         vbox(std::move(team1Scores)) | center,
         filler(),
         vbox(std::move(team2Scores)) | align_right,
-    })| size(WIDTH, GREATER_THAN, 25);
+    })| size(WIDTH, GREATER_THAN, SCORE_WIDTH);
 
     auto outcomeLine = text(outcome) | bold | center;
     Element document = vbox({
@@ -405,7 +413,7 @@ void GameView::showStaticScore(const ScoreState& scoreState) {
             separator(),
             outcomeLine,
     }) | center | border 
-    | size(HEIGHT, GREATER_THAN, (int)columnNames.size() + 2)
+    | size(HEIGHT, GREATER_THAN, (int)columnNames.size() + PADDING_WITH_MESSAGE)
     | center;
 
     // 5) One-shot render into a virtual Screen
@@ -437,7 +445,7 @@ int GameView::promptChoiceWithBoard(
     // Selection state
     int selected = 0;
     int scroll   = 0;
-    const int paneH = std::min<int>((int)options.size() + 2, 8);
+    const int paneH = std::min<int>((int)options.size() + PADDING_WITH_MESSAGE, PANE_HIGHT);
     // show up to 6 options + question/message
 
     Component component = CatchEvent(
@@ -450,7 +458,7 @@ int GameView::promptChoiceWithBoard(
         lines.push_back(text(question));
 
         // Visible window
-        int vis = paneH - (message ? 2 : 1);
+        int vis = paneH - (message ? PADDING_WITH_MESSAGE : 1);
         scroll = std::min<int>(scroll, (int)options.size() - vis);
         scroll = std::max<int>(scroll, 0);
 
@@ -467,7 +475,7 @@ int GameView::promptChoiceWithBoard(
         }),
         [&](Event e) {
         int n = options.size();
-        int vis = paneH - (message ? 2 : 1);
+        int vis = paneH - (message ? PADDING_WITH_MESSAGE : 1);
 
         if (e == Event::ArrowDown) {
             if (selected + 1 < n) {
@@ -525,7 +533,6 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
     std::size_t cardIdx = 0, cardScroll = 0;
     std::optional<Rank> currentRank;
     std::vector<bool> cardSelected;
-    const int paneH = 6;
 
     // Helpers
     auto label_for_rank = [&](Rank r) {
@@ -555,7 +562,7 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
         std::vector<Element> lines;
         if (mode == Mode::PICK_RANK) {
             std::size_t n   = ALL_RANKS.size();
-            std::size_t vis = paneH - 2;
+            std::size_t vis = MAX_OPTIONS_IN_PANE;
             rankIdx    = std::min<std::size_t>(rankIdx, n? n-1:0);
             rankScroll = std::min<std::size_t>(rankScroll, n>vis? n-vis:0);
 
@@ -572,7 +579,7 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
         Rank r        = *currentRank;
         auto bucket   = bucket_for(r);
         std::size_t n      = bucket.size();
-        std::size_t vis    = paneH - 2;
+        std::size_t vis    = MAX_OPTIONS_IN_PANE;
         if (cardSelected.size()!=n)
             cardSelected.assign(n,false);
         cardIdx    = std::min<std::size_t>(cardIdx, n?n-1:0);
@@ -604,7 +611,7 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
     [&](Event e){
         if (mode==Mode::PICK_RANK) {
             std::size_t n   = ALL_RANKS.size();
-            std::size_t vis = paneH - 2;
+            std::size_t vis = PANE_HIGHT - PADDING_WITH_MESSAGE;
             if (e==Event::ArrowDown) {
                 if (rankIdx+1 < n) {
                 rankIdx++;
@@ -637,7 +644,7 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
         // PICK_CARDS
             auto bucket = bucket_for(*currentRank);
             std::size_t n   = bucket.size();
-            std::size_t vis = paneH - 2;
+            std::size_t vis = MAX_OPTIONS_IN_PANE;
             if (e==Event::ArrowDown) {
                 if (cardIdx+1 < n) {
                     cardIdx++;
@@ -724,8 +731,6 @@ Card GameView::runDiscardWizard(const BoardState& boardState) {
     std::optional<Rank> currentRank;
     std::optional<Card> result;  // the selected card
 
-    const int paneH = 6;  // bottom pane height
-
     // Helper: label for a rank
     auto label_for_rank = [&](Rank r) {
     int cnt = 0;
@@ -753,7 +758,7 @@ Card GameView::runDiscardWizard(const BoardState& boardState) {
         if (mode == Mode::PICK_RANK) {
         // Rank list
         std::size_t n   = ranks.size();
-        std::size_t vis = paneH - 2;
+        std::size_t vis = MAX_OPTIONS_IN_PANE;
         rankIdx    = std::min<std::size_t>(rankIdx, n ? n - 1 : 0);
         rankScroll = std::min<std::size_t>(rankScroll, n > vis ? n - vis : 0);
 
@@ -770,7 +775,7 @@ Card GameView::runDiscardWizard(const BoardState& boardState) {
         Rank r        = *currentRank;
         auto bucket   = bucket_for(r);
         std::size_t n      = bucket.size();
-        std::size_t vis    = paneH - 2;
+        std::size_t vis    = MAX_OPTIONS_IN_PANE;
         cardIdx       = std::min<std::size_t>(cardIdx, n ? n - 1 : 0);
         cardScroll    = std::min<std::size_t>(cardScroll, n > vis ? n - vis : 0);
 
@@ -798,7 +803,7 @@ Card GameView::runDiscardWizard(const BoardState& boardState) {
     [&](Event e) {
         if (mode == Mode::PICK_RANK) {
         std::size_t n   = ranks.size();
-        std::size_t vis = paneH - 2;
+        std::size_t vis = MAX_OPTIONS_IN_PANE;
         if (e == Event::ArrowDown) {
             if (rankIdx + 1 < n) {
             rankIdx++;
@@ -825,7 +830,7 @@ Card GameView::runDiscardWizard(const BoardState& boardState) {
         // PICK_CARD
         auto bucket = bucket_for(*currentRank);
         std::size_t n   = bucket.size();
-        std::size_t vis = paneH - 2;
+        std::size_t vis = MAX_OPTIONS_IN_PANE;
         if (e == Event::ArrowDown) {
             if (cardIdx + 1 < n) {
             cardIdx++;

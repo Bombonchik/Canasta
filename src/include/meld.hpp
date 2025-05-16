@@ -40,9 +40,12 @@ inline std::string to_string(CanastaType type) {
     return canastaTypes[static_cast<int>(type)];
 }
 
-// --- Scoring Constants ---
+// --- Constants ---
+constexpr std::size_t MIN_CANASTA_SIZE = 7; // Minimum size for a canasta
 constexpr int NATURAL_CANASTA_BONUS = 500;
 constexpr int MIXED_CANASTA_BONUS = 300;
+constexpr std::size_t MIN_MELD_SIZE = 3; // Minimum size for a meld
+constexpr std::size_t MAX_SPECIAL_MELD_SIZE = 4; // Maximum size for a special meld (Red Three, Black Three)
 
 /**
  * @class BaseMeld
@@ -402,8 +405,8 @@ Status Meld<R>::checkInitialization(const std::vector<Card>& cards) const {
     if (isActive) {
         return std::unexpected("Meld is already initialized");
     }
-    if (cards.size() < 3) {
-        return std::unexpected("Meld must contain at least 3 cards");
+    if (cards.size() < MIN_MELD_SIZE) {
+        return std::unexpected("Meld must contain at least " + std::to_string(MIN_MELD_SIZE) + " cards");
     }
     return validateCards(cards);
 }
@@ -447,7 +450,7 @@ Status Meld<R>::checkCardsAddition(const std::vector<Card>& cards) const {
 // Implementation of Meld<R>::updateCanastaStatus
 template <Rank R>
 void Meld<R>::updateCanastaStatus() {
-    isCanasta = naturalCards.size() + wildCards.size() >= 7;
+    isCanasta = naturalCards.size() + wildCards.size() >= MIN_CANASTA_SIZE;
 }
 
 // Implementation of Meld<R>::getCanastaType

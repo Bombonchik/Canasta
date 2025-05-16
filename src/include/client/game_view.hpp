@@ -77,6 +77,8 @@ private:
     int opponentTeamTotalScore;
     int myTeamMeldPoints;
     int opponentTeamMeldPoints;
+
+    static constexpr int RANK_MELD_OFFSET = 2; // Offset for rank melds (Four to Ace)
 public:
 
     // Getters
@@ -106,6 +108,8 @@ public:
     void setOpponentTeamTotalScore(int score) { opponentTeamTotalScore = score; }
     void setMyTeamMeldPoints(int points) { myTeamMeldPoints = points; }
     void setOpponentTeamMeldPoints(int points) { opponentTeamMeldPoints = points; }
+
+    static std::optional<std::size_t> getMeldIndexForRank(Rank rank);
 };
 
 /**
@@ -202,6 +206,13 @@ public:
     void restoreInput();
 
 private:
+    static constexpr int PANE_HIGHT = 6; ///< Height of the pane for displaying options
+    static constexpr int PADDING_WITH_MESSAGE = 2;     ///< Padding for the display
+    static constexpr int MAX_OPTIONS_IN_PANE = PANE_HIGHT - PADDING_WITH_MESSAGE; ///< Maximum options in the pane
+    static constexpr int SCORE_WIDTH = 25; ///< Width of the score display
+    static constexpr std::size_t MAX_NAME_LENGTH = 10; ///< Maximum length of player names
+    static constexpr std::size_t MAX_MELD_GRID_ROWS = 8; ///< Maximum rows in the meld grid
+
     CanastaConsole console;                 ///< Console for output
     ScreenInteractive screen;               ///< Screen for interactive input/output
     std::optional<InputGuard> inputGuard;   /// Input guard for console state

@@ -46,6 +46,8 @@ private:
     std::string localPlayerName;            ///< To store the player's name after successful input
     BoardState currentBoardState;           ///< To keep track of the current board state
 
+    static constexpr std::size_t SCORE_TIME = 25; ///< Time to display the score screen before returning to the game
+
     // --- Internal Action State Tracking ---
     // These statuses help the controller decide what to do next based on the game state
     // and the results of previous actions.

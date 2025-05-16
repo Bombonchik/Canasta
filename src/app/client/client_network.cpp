@@ -198,7 +198,7 @@ void ClientNetwork::handleReadHeader(const asio::error_code& error, std::size_t 
         incomingMsgSize = asio::detail::socket_ops::network_to_host_long(incomingMsgSize);
 
         // Basic sanity check for message size
-        if (incomingMsgSize > 65536) { // Example limit: 64k
+        if (incomingMsgSize > MAX_MESSAGE_SIZE) { // Example limit: 64k
             spdlog::error("Error: Incoming message size too large ({})", incomingMsgSize);
             disconnect(); // Disconnect on potentially malicious message
             return;

@@ -74,9 +74,9 @@ BoardState ClientController::getBoardState(const ClientGameState& gameState) con
     boardState.setDeckState(gameState.getDeckState());
     auto allPlayersInfo = gameState.getAllPlayersPublicInfo();
     boardState.setMyPlayer(allPlayersInfo[0]); // Assuming the first player is the current player
-    if (allPlayersInfo.size() == 2) {
+    if (allPlayersInfo.size() == RuleEngine::TWO_PLAYERS_GAME) {
         boardState.setOppositePlayer(allPlayersInfo[1]); // Assuming the second player is the opponent
-    } else if (allPlayersInfo.size() == 4) {
+    } else if (allPlayersInfo.size() == RuleEngine::FOUR_PLAYERS_GAME) {
         boardState.setLeftPlayer(allPlayersInfo[1]); // Assuming the second player is the left player
         boardState.setOppositePlayer(allPlayersInfo[2]); // Assuming the third player is the opponent
         boardState.setRightPlayer(allPlayersInfo[3]); // Assuming the fourth player is the right player
@@ -114,7 +114,7 @@ void ClientController::handleGameStateUpdate(const ClientGameState& gameState) {
         if (gameState.getIsRoundOver()) {
             view.showStaticScore(getScoreState(gameState));
             if (!gameState.getIsGameOver())
-                std::this_thread::sleep_for(std::chrono::seconds(25));
+                std::this_thread::sleep_for(std::chrono::seconds(SCORE_TIME));
         }
         else {
             view.showStaticBoardWithMessages({gameState.getLastActionDescription()}, currentBoardState);
@@ -235,7 +235,7 @@ void ClientController::processMelding(ActionAttemptStatus& previousAttemptStatus
     for (auto& meldRequest : meldRequests) {
         auto meldRequestRank = meldRequest.getRank();
         if (meldRequestRank.has_value() && meldRequestRank.value() >= Rank::Four) {
-            const auto& meld = myTeamMelds[static_cast<int>(meldRequestRank.value()) - 2];
+            const auto& meld = myTeamMelds[BoardState::getMeldIndexForRank(meldRequestRank.value()).value()];
             if (!meld.isInitialized())
                 meldRequest.setRank(std::nullopt); // Reset to nullopt if not initialized
         }

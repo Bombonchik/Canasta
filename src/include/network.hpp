@@ -42,6 +42,8 @@ enum class ServerMessageType : uint8_t {
     LoginFailure,
 };
 
+constexpr std::size_t MAX_MESSAGE_SIZE = 64 * 1024; // 64 KB
+
 /**
  * @class ActionError
  * @brief Class representing an error message sent from the server to the client.

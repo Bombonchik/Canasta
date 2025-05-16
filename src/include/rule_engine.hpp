@@ -197,6 +197,8 @@ public:
     // --- Constants ---
     static constexpr int GOING_OUT_BONUS = 100; ///< Bonus points for going out
     static constexpr int MIN_CANASTAS_TO_GO_OUT = 1; ///< Example: At least one canasta needed to go out
+    static constexpr int TWO_PLAYERS_GAME = 2; ///< Number of players in a two-player game
+    static constexpr int FOUR_PLAYERS_GAME = 4; ///< Number of players in a four-player game
 
     //static constexpr int WINNING_SCORE = 5000;
     // just for testing
