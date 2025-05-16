@@ -279,7 +279,7 @@ public:
      * @brief Randomly rotates a vector by a random number of positions.
      */
     template<typename T>
-    static std::vector<T> randomRotate(std::vector<T> vec);
+    static void randomRotate(std::vector<T>& vec);
 
 private:
     static constexpr int MELD_POINTS_NEGATIVE  =  15;
@@ -327,8 +327,8 @@ private:
 };
 
 template<typename T>
-std::vector<T> RuleEngine::randomRotate(std::vector<T> vec) {
-    if (vec.empty()) return vec;
+void RuleEngine::randomRotate(std::vector<T>& vec) {
+    if (vec.empty()) return;
 
     static std::mt19937 rng{std::random_device{}()};
     std::uniform_int_distribution<std::size_t> dist(0, vec.size() - 1);
@@ -337,7 +337,6 @@ std::vector<T> RuleEngine::randomRotate(std::vector<T> vec) {
     std::rotate(vec.begin(),
                 vec.begin() + shift,
                 vec.end());
-    return vec;
 }
 
 #endif // RULE_ENGINE_HPP

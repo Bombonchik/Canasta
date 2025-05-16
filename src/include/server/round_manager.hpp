@@ -118,6 +118,7 @@ public:
      * @brief Gets the state of the team for a given player.
      * @param player The player whose team state is requested.
      * @return TeamRoundState object for the player's team in the current round.
+     * @details This function clones the TeamRoundState object for the player.
      */
     TeamRoundState getTeamStateForTeam(const Team& team) const;
 

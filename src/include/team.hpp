@@ -25,7 +25,7 @@ public:
     /**
      * @brief Constructor to create a team with a given name.
      */
-    explicit Team(std::string name);
+    explicit Team(const std::string& name);
 
     /**
      * @brief Get the name of the team.

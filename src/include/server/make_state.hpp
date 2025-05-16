@@ -18,7 +18,7 @@ inline ClientGameState makeClientGameState(
     const Player& player,
     const RoundManager& roundManager,
     const GameManager& gameManager,
-    std::string actionDescription,
+    const std::string& actionDescription,
     std::optional<TurnActionStatus> status = std::nullopt
 ) {
     ClientGameState s;

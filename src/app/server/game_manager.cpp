@@ -159,7 +159,7 @@ void GameManager::startNextRound() {
     for (Player& p : allPlayers) {
         playerRefs.emplace_back(p);
     }
-    playerRefs = RuleEngine::randomRotate(playerRefs);
+    RuleEngine::randomRotate(playerRefs);
 
     currentRound.reset(); // Reset any existing round manager
     currentRound = std::make_unique<RoundManager>(
