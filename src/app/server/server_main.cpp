@@ -36,7 +36,7 @@ void launchTerminal(int playerIndex) {
     // macOS: Use 'osascript' to run a command in a new Terminal window
     command = "osascript -e 'tell application \"Terminal\" to do script \"cd '$PWD' && ./canasta_client " + std::to_string(playerIndex) + "\"'";
 #else
-    // Linux: Use 'gnome-terminal' or 'xterm' to open a new terminal window
+    // Linux: Use 'gnome-terminal' to open a new terminal window
     command = "gnome-terminal -- bash -c './canasta_client " + std::to_string(playerIndex) + "; exec bash'";
 #endif
     spdlog::info("Launching terminal for Player {}", playerIndex + 1);
