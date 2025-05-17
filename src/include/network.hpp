@@ -16,7 +16,7 @@
 #include <optional>
 #include "card.hpp"
 #include "meld.hpp"
-#include "rule_engine.hpp"
+#include "game_state.hpp"
 
 /**
  * @enum ClientMessageType

@@ -18,7 +18,6 @@
 #include "game_state.hpp"
 #include "player_public_info.hpp"
 #include "meld.hpp"
-#include "rule_engine.hpp"
 #include "client_deck.hpp"
 #include "client/canasta_console.hpp"
 #include "client/input_guard.hpp"

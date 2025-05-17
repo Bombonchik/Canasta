@@ -2,7 +2,6 @@
 #include "server/game_manager.hpp"
 #include "player.hpp"
 #include "team.hpp"
-#include "rule_engine.hpp"
 #include "score_details.hpp" // Included via round_manager? Explicitly add if needed.
 
 #include <stdexcept>

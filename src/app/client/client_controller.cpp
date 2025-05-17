@@ -74,9 +74,9 @@ BoardState ClientController::getBoardState(const ClientGameState& gameState) con
     boardState.setDeckState(gameState.getDeckState());
     auto allPlayersInfo = gameState.getAllPlayersPublicInfo();
     boardState.setMyPlayer(allPlayersInfo[0]); // Assuming the first player is the current player
-    if (allPlayersInfo.size() == RuleEngine::TWO_PLAYERS_GAME) {
+    if (allPlayersInfo.size() == TWO_PLAYERS_GAME) {
         boardState.setOppositePlayer(allPlayersInfo[1]); // Assuming the second player is the opponent
-    } else if (allPlayersInfo.size() == RuleEngine::FOUR_PLAYERS_GAME) {
+    } else if (allPlayersInfo.size() == FOUR_PLAYERS_GAME) {
         boardState.setLeftPlayer(allPlayersInfo[1]); // Assuming the second player is the left player
         boardState.setOppositePlayer(allPlayersInfo[2]); // Assuming the third player is the opponent
         boardState.setRightPlayer(allPlayersInfo[3]); // Assuming the fourth player is the right player

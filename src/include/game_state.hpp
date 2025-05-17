@@ -8,13 +8,15 @@
 #include "player.hpp"           // Includes Hand, Card
 #include "team_round_state.hpp" // Includes Meld, ScoreBreakdown
 #include "client_deck.hpp"      // Public view of deck/discard state
-#include "rule_engine.hpp"      // For GameOutcome
 #include "score_details.hpp"     // For ScoreBreakdown
 #include <vector>
 #include <optional>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/optional.hpp>
+
+static constexpr int TWO_PLAYERS_GAME = 2; ///< Number of players in a two-player game
+static constexpr int FOUR_PLAYERS_GAME = 4; ///< Number of players in a four-player game
 
 /**
  * @enum ClientGameOutcome
@@ -24,6 +26,21 @@ enum class ClientGameOutcome {
     Win,
     Lose,
     Draw
+};
+
+/**
+ * @enum TurnActionStatus
+ * @brief Enum representing the status of a player's action during their turn.
+ */
+enum class TurnActionStatus {
+    Success_TurnContinues,      ///< Action valid (draw, take pile, meld); turn proceeds to Meld/Discard phase
+    Success_TurnOver,           ///< Discard valid, turn ended normally
+    Success_WentOut,            ///< Meld or Discard valid, player went out, turn ended
+    Error_MainDeckEmptyDiscardPileCantBeTaken, ///< Failed to take discard pile when main deck is empty
+    Error_MainDeckEmpty,        ///< Attempted to draw from an empty main deck
+    Error_InvalidAction,        ///< General invalid action (e.g., wrong phase, bad cards, invalid discard type)
+    Error_InvalidMeld,          ///< Invalid meld (e.g., not enough cards, wrong rank)
+    Error_MeldRequirementNotMet,///< Initial meld points not met
 };
 
 /**

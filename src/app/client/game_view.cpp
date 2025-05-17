@@ -380,7 +380,7 @@ void GameView::showStaticScore(const ScoreState& scoreState) {
     // Optional outcome line
     auto maybeGameOutcome = scoreState.getGameOutcome();
     if (scoreState.getIsGameOver() && maybeGameOutcome.has_value()) {
-        if (scoreState.getPlayersCount() == RuleEngine::TWO_PLAYERS_GAME) {
+        if (scoreState.getPlayersCount() == TWO_PLAYERS_GAME) {
             if (*maybeGameOutcome == ClientGameOutcome::Win)
                 outcome = "You win!";
             else if (*maybeGameOutcome == ClientGameOutcome::Lose)

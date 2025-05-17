@@ -1,5 +1,4 @@
 #include "server/turn_manager.hpp"
-#include "rule_engine.hpp" // Include for static RuleEngine methods
 #include <stdexcept> // For potential exceptions if needed
 #include <numeric>   // For std::accumulate if calculating points
 #include <cassert>

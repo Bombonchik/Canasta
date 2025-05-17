@@ -12,6 +12,7 @@
 #include <algorithm>
 #include "hand.hpp"
 #include "meld.hpp"
+#include "game_state.hpp"
 #include "team_round_state.hpp"
 
 /**
@@ -143,21 +144,6 @@ enum class GameOutcome {
     Team1Wins,    ///< Team 1 has more points and has reached the win threshold
     Team2Wins,    ///< Team 2 has more points and has reached the win threshold
     Draw          ///< Both have reached the threshold with exactly equal scores
-}; 
-
-/**
- * @enum TurnActionStatus
- * @brief Enum representing the status of a player's action during their turn.
- */
-enum class TurnActionStatus {
-    Success_TurnContinues,      ///< Action valid (draw, take pile, meld); turn proceeds to Meld/Discard phase
-    Success_TurnOver,           ///< Discard valid, turn ended normally
-    Success_WentOut,            ///< Meld or Discard valid, player went out, turn ended
-    Error_MainDeckEmptyDiscardPileCantBeTaken, ///< Failed to take discard pile when main deck is empty
-    Error_MainDeckEmpty,        ///< Attempted to draw from an empty main deck
-    Error_InvalidAction,        ///< General invalid action (e.g., wrong phase, bad cards, invalid discard type)
-    Error_InvalidMeld,          ///< Invalid meld (e.g., not enough cards, wrong rank)
-    Error_MeldRequirementNotMet,///< Initial meld points not met
 };
 
 /**
@@ -197,8 +183,6 @@ public:
     // --- Constants ---
     static constexpr int GOING_OUT_BONUS = 100; ///< Bonus points for going out
     static constexpr int MIN_CANASTAS_TO_GO_OUT = 1; ///< Example: At least one canasta needed to go out
-    static constexpr int TWO_PLAYERS_GAME = 2; ///< Number of players in a two-player game
-    static constexpr int FOUR_PLAYERS_GAME = 4; ///< Number of players in a four-player game
 
     //static constexpr int WINNING_SCORE = 5000;
     // just for testing

@@ -1,6 +1,5 @@
 #include "server/round_manager.hpp"
 #include "server/turn_manager.hpp"
-#include "rule_engine.hpp"
 #include "player.hpp"
 #include "team_round_state.hpp"
 #include "score_details.hpp"
