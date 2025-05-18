@@ -1,0 +1,211 @@
+@startuml CoreDiagram
+
+skinparam packageStyle rect
+
+package "Canasta Core" {
+    '––– Card enums –––
+    enum Rank {
+        Joker
+        Two
+        Three
+        ...
+        Queen
+        King
+        Ace
+    }
+    
+    enum CardColor {
+        RED
+        BLACK
+    }
+    
+    enum CardType {
+        Natural
+        Wild
+        RedThree
+        BlackThree
+    }
+
+    '––– Card class –––
+    class Card {
+        - rank: Rank
+        - color: CardColor
+        - type: CardType
+        - points: int
+        --
+        + Card(rank: Rank, color: CardColor)
+    }
+
+    Card ..> Rank
+    Card ..> CardColor
+    Card ..> CardType
+
+    '––– Hand class –––
+
+    class Hand {
+        - cards: deque<Card>
+        --
+        + addCard(card: Card)
+        + removeCard(card: Card): bool
+        + addCards(newCards: vector<Card>, reversible: bool)
+        + revertAddCards()
+        + hasCard(card: Card): bool
+        + getPoints(): int
+        + calculatePenalty(): int
+    }
+
+    Hand *-- Card : has
+
+    '––– Meld enums –––
+    enum CanastaType {
+        Natural
+        Mixed
+    }
+
+    '––– Meld classes –––
+    class BaseMeld {
+        - points: bool
+        --
+        + isInitialized(): bool
+
+        {virtual}
+        + checkInitialization(cards: vector<Card>): Status
+        + initialize(cards: vector<Card>)
+        + checkCardsAddition(cards: svector<Card>): Status
+        + addCards(cards: vector<Card>, reversible: bool)
+        + getPoints(): int
+        + updatePoints(): void
+        + isCanastaMeld(): bool
+        + getCanastaType(): optional<CanastaType>
+        + revertAddCards()
+        + getCards(): vector<Card>
+    }
+
+    class "Meld\n<R>" {
+        - isCanasta: bool
+        - naturalCards: vector<Card>
+        - wildCards: vector<Card>
+        --
+        + isCanastaMeld(): bool
+        + getCanastaType(): optional<CanastaType>
+        + virtual overrides ...
+        ...
+    }
+
+    class RedThreeMeld {
+        - redThreeCards: vector<Card>
+        --
+        + virtual overrides ...
+    }
+
+    class BlackThreeMeld {
+        - blackThreeCards: vector<Card>
+        --
+        + virtual overrides ...
+    }
+
+    "Meld\n<R>" ..> CanastaType
+    "Meld\n<R>" --|> BaseMeld
+    RedThreeMeld --|> BaseMeld
+    BlackThreeMeld --|> BaseMeld
+    "Meld\n<R>" *-- Card : has
+    RedThreeMeld *-- Card : has
+    BlackThreeMeld *-- Card : has
+
+    '––– Player class –––
+    class Player {
+        - name: string
+        - hand: Hand
+        --
+        + Player(name: string)
+        + getName(): string
+        + getHand(): Hand
+        + resetHand()
+    }
+
+    Player *-- Hand : has
+
+    '––– Team class –––
+
+    class Team {
+        - name: string
+        - totalScore: int
+        --
+        + addPlayer(player: Player)
+        + hasPlayer(player: Player): bool
+        + getPlayers(): vector<Player>
+        + getTotalScore(): int
+        + addToTotalScore(points: int)
+    }
+
+    Team o-- "1/2" Player : has member(s)
+
+    '––– TeamRoundState class –––
+    class TeamRoundState {
+        - melds: vector<BaseMeld*>
+        --
+        + addMeld(meld: BaseMeld)
+        + getMelds(): vector<BaseMeld*>&
+        + getMeldForRank(r: Rank): BaseMeld*
+        + getRedThreeMeld(: BaseMeld*
+        + getBlackThreeMeld(): BaseMeld*
+        + calculateMeldPoints(): int
+        + hasMadeInitialRankMeld(): bool
+        + getScoreBreakdown(int goingOutBonus): ScoreBreakdown
+        + clone(): TeamRoundState
+    }
+
+    TeamRoundState *-- "11" "Meld\n<R>" : has
+    TeamRoundState *-- "1" RedThreeMeld : has
+    TeamRoundState *-- "1" BlackThreeMeld : has
+
+    '––– ClientDeck class –––
+    class ClientDeck {
+        + getTopDiscardCard(): optional<Card>
+        + getDiscardPileSize(): size_t
+        + getMainDeckSize(): size_t
+        + isFrozen(): bool
+    }
+
+    '––– ScoreBreakdown class –––
+    class ScoreBreakdown {
+        + get/set NaturalCanastaBonus(): int
+        + get/set MixedCanastaBonus(): int
+        + get/set MeldedCardsPoints(): int
+        + get/set RedThreeBonusPoints(): int
+        + get/set HandPenaltyPoints(): int
+        + get/set GoingOutBonus(): int
+        + calculateTotal(): int
+    }
+
+    '––– PlayerPublicInfo class –––
+    class PlayerPublicInfo {
+        + getName(): string
+        + getHandCardCount(): int
+        + isCurrentPlayer(): bool
+    }
+
+    '––– ClientGameState class –––
+    class ClientGameState {
+        + get/set DeckState(): ClientDeck
+        + get/set MyPlayerData(): Player
+        + get/set AllPlayersPublicInfo(): vector<PlayerPublicInfo>
+        + get/set MyTeamState(): TeamRoundState
+        + get/set OpponentTeamState(): TeamRoundState
+        + get/set MyTeamTotalScore(): int
+        + get/set IsRoundOver(): bool
+        + get/set MyTeamScoreBreakdown(): ScoreBreakdown
+        + get/set OpponentTeamScoreBreakdown(): ScoreBreakdown
+        + get/set GameOutcome(): ClientGameOutcome
+        + get/set LastActionDescription(): string
+        + get/set Status(): optional<TurnActionStatus>
+    }
+
+    ClientGameState o-- PlayerPublicInfo
+    ClientGameState o-- ClientDeck
+    ClientGameState o-- TeamRoundState
+    ClientGameState o-- Player
+    ClientGameState o-- ScoreBreakdown
+}
+
+@enduml
