@@ -1,0 +1,110 @@
+@startuml ClientDiagram
+package "Client" {
+
+    class CanastaConsole {
+        + print(msg, color, newline)
+        + clear()
+    }
+
+    class InputGuard {
+        + InputGuard()
+        + ~InputGuard()
+    }
+
+    class ClientNetwork {
+        - ioContext: io_context&
+        - socket: ip::tcp::socket
+        - resolver: ip::tcp::resolver
+        - clientPlayerName: string
+        --
+        + ClientNetwork(ioContext: io_context&)
+        + connect(host, port, playerName)
+        + disconnect()
+
+        + sendDrawDeck()
+        + sendTakeDiscardPile()
+        + sendMeld(requests: vector<MeldRequest>)
+        + sendDiscard(card: Card)
+        + sendRevert()
+
+        + setOnGameStateUpdate(callback: GameStateCallback)
+        + setOnActionError(callback: ErrorCallback)
+        + setOnLoginSuccess(callback: VoidCallback)
+        + setOnLoginFailure(callback: LoginFailureCallback)
+        + setOnDisconnect(callback: VoidCallback)
+    }
+    class ClientController {
+        - network: shared_ptr<ClientNetwork>
+        - localPlayerName: string
+        - view: GameView
+        - currentBoardState: BoardState
+        --
+        + ClientController(clientNetwork: ClientNetwork*)
+        + connect(host: string, port: string)
+        + processPlayerTurn(optional<std::string> message)
+    }
+
+    class CardView{
+        + getLabel(): string
+        + getColor(): Color
+    }
+
+    class MeldView{
+        + getRank(): Rank
+        + getCards(): vector<Card>
+        + isInitialized(): bool
+    }
+
+    class BoardState {
+        + get/set MyTeamMelds(): vector<MeldView>
+        + get/set OpponentTeamMelds(): vector<MeldView>
+        + get/set MyHand(): Hand
+        + get/set DeckState(): ClientDeck
+        + get/set MyPlayer(): PlayerPublicInfo
+        + get/set OppositePlayer(): PlayerPublicInfo
+        + get/set LeftPlayer(): optional<PlayerPublicInfo>
+        + get/set RightPlayer(): optional<PlayerPublicInfo>
+        + get/set MyTeamTotalScore(): int
+        + get/set OpponentTeamTotalScore(): int
+        + get/set MyTeamMeldPoints(): bool
+        + get/set OpponentTeamMeldPoints(): bool
+        + getMeldIndexForRank(rank: Rank): optional<size_t>
+    }
+
+    class ScoreState {
+        + get/set MyTeamScoreBreakdown(): ScoreBreakdown
+        + get/set OpponentTeamScoreBreakdown(): ScoreBreakdown
+        + get/set getPlayersCount(): size_t
+        + get/set MyTeamTotalScore(): int
+        + get/set OpponentTeamTotalScore(): int
+        + get/set IsGameOver(): bool
+        + get/set GameOutcome(): optional<ClientGameOutcome>    
+    }
+
+    ClientController o-- ClientNetwork : communicates
+    ClientController *-- BoardState : manages
+    ClientController *-- ScoreState : manages
+
+    class GameView {
+        - console: CanastaConsole
+        - screen: ScreenInteractive
+        - inputGuard: optional<InputGuard>
+        --
+        + promptString(question: string&, placeholder: string&): string
+        + promptChoiceWithBoard(question, choices: vector<string>&, boardState): int
+        + runMeldWizard(boardState: BoardState&): vector<MeldRequest>
+        + runDiscardWizard(boardState: BoardState&): Card
+        + showStaticBoardWithMessages(messages: vector<string>&, boardState)
+        + showStaticScore(scoreState: ScoreState&)
+        + restoreInput()
+    }
+
+    ClientController *-- GameView : manages
+    GameView ..> BoardState : displays
+    GameView ..> ScoreState : displays
+    GameView *-- CanastaConsole : manages
+    GameView *-- InputGuard : manages
+    GameView ..> CardView
+    GameView ..> MeldView
+}
+@enduml
