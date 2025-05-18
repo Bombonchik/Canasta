@@ -1,0 +1,141 @@
+@startuml ServerDiagram
+
+skinparam packageStyle rect
+
+package "Server" {
+    class ServerDeck {
+        - mainDeck: vector<Card>
+        - discardPile: vector<Card>
+        --
+        + drawCard(): optional<Card>
+        + getTopDiscard(): optional<Card>
+        + discardCard(card: Card)
+        + takeDiscardPile(): expected<vector<Card>, string>
+        + revertTakeDiscardPile()
+        + isFrozen(): bool
+    }
+
+    class TurnManager {
+        - player: Player*
+        - hand: Hand*
+        - teamRoundState: TeamRoundState*
+        - serverDeck: ServerDeck*
+        --
+        + handleDrawDeck(): TurnActionResult
+        + handleTakeDiscardPile(): TurnActionResult
+        + handleMelds(meldRequests: vector<MeldRequest>): TurnActionResult
+        + handleDiscard(cardToDiscard: Card): TurnActionResult
+        + handleRevert(): TurnActionResult
+    }
+
+    ' ––– RuleEngine enum –––
+    enum MeldCommitmentType {
+        Initialize
+        AddToExisting
+    }
+
+    class MeldCommitment {
+        + getType(): MeldCommitmentType
+        + getRank(): Rank
+        + getCount(): size_t
+    }
+
+    class RuleEngine {
+        + canDiscard(playerHand: Hand&, discardCard: Card&): bool
+        + suggestMeld(cards: vector<Card>): expected<MeldSuggestion, string>
+        + checkGameOutcome(...): GameOutcome
+        + canGoingOut(...): bool
+        + validatePointsForInitialMelds(...): expected<void, int>
+        + validateRankMeldInitializationProposals(...): expected<int, string>
+        + validateBlackThreeMeldInitializationProposal(...): Status
+        + validateRankMeldAdditionProposals(...): Status
+        + checkTakingDiscardPile(...): expected<MeldCommitment, string>
+    }
+
+    TurnManager *-- MeldCommitment
+
+    MeldCommitment ..> MeldCommitmentType
+
+    TurnManager --> ServerDeck : uses
+
+    TurnManager ..> RuleEngine : uses
+
+    class RoundManager {
+        - serverDeck: ServerDeck
+        - team1State: TeamRoundState
+        - team2State: TeamRoundState
+        - currentTurnManager: TurnManager*
+        --
+        + startRound()
+        + isRoundOver(): bool
+        + getCurrentPlayer(): Player&
+        + handleDrawDeckRequest(): TurnActionResult
+        + handleTakeDiscardPileRequest(): TurnActionResult
+        + handleMeldsRequest(meldRequests: vector<MeldRequest>): TurnActionResult
+        + handleDiscardRequest(cardToDiscard: Card): TurnActionResult
+        + handleRevertRequest(): TurnActionResult
+        + calculateScores(): map<string, ScoreBreakdown>
+    }
+
+    RoundManager *-- TurnManager : manages
+
+    RoundManager *-- ServerDeck : manages
+
+    RoundManager ..> RuleEngine : uses
+
+    class Session {
+        - socket: ip::tcp::socket socket
+        - playerName: string
+        - joined: bool
+        --
+        + start()
+        + deliver(message: vector<char>)
+        + getPlayerName(): string
+    }
+
+    class GameManager {
+        - allPlayers: vector<Player>
+        - team1: Team
+        - team2: Team
+        - currentRound: RoundManager*
+        --
+        GameManager(playersCount: size_t)
+        +startGame()
+        +addPlayer(player: Player): Status
+        +allPlayersJoined(): bool
+        +advanceGameState()
+        +isGameOver(): bool
+        +getGameOutcome(): optional<GameOutcome>
+        +getAllPlayers(): vector<Player>
+        +getCurrentRoundManager(): RoundManager*
+    }
+
+    GameManager *-- RoundManager : manages
+
+    GameManager ..> RuleEngine : uses
+
+    class ServerNetwork {
+        - ioContext: io_context&
+        - acceptor: ip::tcp::acceptor
+        - sessions: map<string, SessionPtr>
+        - gameManager: GameManager&
+        --
+        + startAccept()
+        + deliverToOne(playerName: string, message: vector<char>)
+        + deliverToAll(message: vector<char>)
+        + handleClientDrawDeck(playerName: string)
+        + handleClientTakeDiscardPile(playerName: string)
+        + handleClientMeld(playerName: string, meldRequests: vector<MeldRequest>)
+        + handleClientDiscard(playerName: string, cardToDiscard: Card)
+        + handleClientRevert(playerName: string)
+    }
+
+    ServerNetwork *-- Session : manages
+
+    Session --> ServerNetwork : uses
+
+    ServerNetwork --> GameManager : uses
+
+    ServerNetwork ..> RoundManager : uses
+}
+@enduml
