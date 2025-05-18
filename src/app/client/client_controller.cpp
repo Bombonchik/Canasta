@@ -5,8 +5,8 @@
 #include <iostream>                // For placeholder messages, to be replaced by GameView calls
 #include <string>                 // For std::string
 
-ClientController::ClientController(std::shared_ptr<ClientNetwork> clientNetwork, GameView& gameView)
-    : network(clientNetwork), view(gameView), localPlayerName("") {
+ClientController::ClientController(std::shared_ptr<ClientNetwork> clientNetwork)
+    : network(clientNetwork), localPlayerName("") {
     resetTurnActionStatuses();
     setupNetworkCallbacks();
 }

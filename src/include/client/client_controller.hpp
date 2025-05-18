@@ -29,7 +29,7 @@ public:
      * @param clientNetwork A shared pointer to the ClientNetwork instance.
      * @param gameView A reference to the GameView instance for user interaction.
      */
-    ClientController(std::shared_ptr<ClientNetwork> clientNetwork, GameView& gameView);
+    ClientController(std::shared_ptr<ClientNetwork> clientNetwork);
 
     /**
      * @brief Initiates the connection process to the server.
@@ -42,8 +42,8 @@ public:
 
 private:
     std::shared_ptr<ClientNetwork> network; /// Pointer to the ClientNetwork instance for network operations
-    GameView& view;                         ///< Reference to the GameView instance for user interaction
     std::string localPlayerName;            ///< To store the player's name after successful input
+    GameView view;                         ///< Reference to the GameView instance for user interaction
     BoardState currentBoardState;           ///< To keep track of the current board state
 
     static constexpr std::size_t SCORE_TIME = 25; ///< Time to display the score screen before returning to the game
