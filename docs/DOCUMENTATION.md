@@ -117,7 +117,6 @@ These group lives in **Core** solely, contains types that encapsulate Canasta’
         
     - Supports full ordering and equality for game logic.
         
----
     
 2. **Hand (Transactional Memento Pattern)**
     
@@ -131,7 +130,6 @@ These group lives in **Core** solely, contains types that encapsulate Canasta’
 
         This avoids pervasive exception-handling and keeps callers’ logic linear.
 
----
 
 3. **Player**
 
@@ -139,9 +137,8 @@ These group lives in **Core** solely, contains types that encapsulate Canasta’
 
     - Offers resetHand() for new rounds.
 
----
     
-3. **Meld Hierarchy (Prototype + Transactional Memento)**
+4. **Meld Hierarchy (Prototype + Transactional Memento)**
     
     - **BaseMeld**
     
@@ -181,9 +178,8 @@ These group lives in **Core** solely, contains types that encapsulate Canasta’
 
     CanastaType enum has now 2 values Natural and Mixed. Wild type (that some non-official Canasta versions supports) could be added and Meld Hierarchy design gives us the opportunity not to change existing meld subclasses but to add a new one that supports Wild meld and Wild Canasta.
         
----
 
-4. **TeamRoundState (Round-Scoped Aggregator)**
+5. **TeamRoundState (Round-Scoped Aggregator)**
 
     - **Ownership & Lifecycle**
         
@@ -288,7 +284,6 @@ This group inside **server** contains classes that drive the complete match and 
         
         When a player takes the discard pile with reversible = true, the entire pile contents and frozen/unfrozen state are atomically **backed up** and removed, discard pile become empty and not frozen. A single rollback call restores both pile contents and freeze flag, ensuring that any aborted or invalid take pile action leaves the game state unchanged.
 
----
 
 2. **RuleEngine** is a stateless, purely static. It centralizes Canasta rule checks and validation logic. No instances are ever created — every method enforces a specific rule or computes a game decision:
 
@@ -333,7 +328,6 @@ This group inside **server** contains classes that drive the complete match and 
         
     By funneling every rule check through static methods, RuleEngine ensures that TurnManager, RoundManager, and GameManager never “reinvent” game logic — and that every validation remains consistent and free of hidden state.
 
----
 
 3. **MeldCommitment** is immutable, value‐type object issued when a player takes the discard pile, bundling three pieces of information:
 
@@ -351,7 +345,6 @@ This group inside **server** contains classes that drive the complete match and 
 
     Once constructed (by the RuleEngine), this commitment is used by TurnManager to guarantee that the player fulfills exactly the promised meld obligation.
 
----
 
 ![](images/image5.png)
 
@@ -415,7 +408,6 @@ This group inside **server** contains classes that drive the complete match and 
 
     Together, these patterns guarantee an all-or-nothing turn: invalid or aborted actions leave both hand and shared game state unchanged, while valid sequences transition cleanly to the next player.
 
----
 
 5. **RoundManager** coordinates an entire Canasta round from initial deal through player turns to final scoring. It owns per‐round state and delegates each turn to a TurnManager, ensuring seamless progression and cleanup.
 
@@ -467,7 +459,6 @@ This group inside **server** contains classes that drive the complete match and 
         
     - **Fail‐Safe Progression:** All results funnel through processTurnResult, guaranteeing that invalid actions cannot corrupt round flow.
 
----
 
 6. **GameManager** orchestrates the end-to-end lifecycle of a Canasta match: collecting players, forming teams, advancing through multiple rounds, and determining the overall winner.
 
@@ -568,7 +559,6 @@ Handles all TCP client connections and message framing in a thread safe way, des
             
         - Ensures all writes occur in-order on the socket’s implicit strand.
             
----
 
 2. **ServerNetwork** owns the TCP listener and the lifecycle of all active Session objects.  It bridges raw network I/O and our single‐threaded game engine by:
 
@@ -687,76 +677,75 @@ This group lives fully on the client, providing terminal-based rendering of the 
 
     By encapsulating platform-specific setup and teardown, these two classes let higher-level UI components render colored text and capture keystrokes reliably across Windows, Linux (and macOS).
 
----
+
 
 2. **CardView** and **MeldView** are lightweight view-model classes in the client’s UI layer, carrying just the data needed to render cards and melds without any business logic.
     
     By separating these simple DTOs from the rest of the application logic, GameView can iterate over collections of CardView and MeldView to render the board and meld wizards cleanly and efficiently.
 
----
+
 3. **BoardState** aggregates everything the UI needs to render a snapshot of play: the player’s hand, both teams’ melds (as MeldView), the current deck/discard (ClientDeck), and public player info in each seating position, plus raw scores and meld-point totals. The ClientController **populates** this object from each incoming ClientGameState and hands it off to GameView, which simply calls its getters to know what to draw.
 
     **ScoreState** bundles round-end scoring data for display: each team’s detailed breakdown (ScoreBreakdown), total scores, player count, and whether the game is over (with outcome). ClientController likewise fills this from the latest game update and gives it to GameView for rendering the score screen.
 
----
 
 4. **GameView** is the heart of the client’s UI layer — a self-contained implementation that uses FTXUI (via &lt;ftxui/dom/elements.hpp&gt;, &lt;ftxui/component/...&gt;) to render rich, cross-platform terminal interfaces on Windows, Linux (and macOS).  All console, layout, color, and input logic lives in game_view.hpp/.cpp; nothing outside — **not even** the **ClientController** (that manages **GameView**) — needs to know it uses FTXUI.  It's possible to swap out the entire UI library without touching any code outside or migrate to a GUI toolkit modifying only controller code.
 
 
-    **Simple Prompts**
+**Simple Prompts**
 
-    - promptString(...)
-        
-        Displays a one‐line question with a text box, reads a full line.
-        
-    - promptChoiceWithBoard(...)
-        
-        Renders the entire boardState alongside a vertical list of options.  Highlights the current selection, handles up/down keys, and returns the chosen index.  An optional status message can be shown above the board.
-        
-    **Wizards**
+- promptString(...)
+    
+    Displays a one‐line question with a text box, reads a full line.
+    
+- promptChoiceWithBoard(...)
+    
+    Renders the entire boardState alongside a vertical list of options.  Highlights the current selection, handles up/down keys, and returns the chosen index.  An optional status message can be shown above the board.
+    
+**Wizards**
 
-    - runMeldWizard(...)
-        
-        Presents a multi-page wizard that shows the current boardState, allowing card-by-card selection of melds. Returns a vector of MeldRequest.
-        
-    - Card runDiscardWizard(const BoardState& boardState)
-        
-        Similar to the meld wizard but for choosing a single discard card. Returns the selected Card.
-        
+- runMeldWizard(...)
+    
+    Presents a multi-page wizard that shows the current boardState, allowing card-by-card selection of melds. Returns a vector of MeldRequest.
+    
+- Card runDiscardWizard(const BoardState& boardState)
+    
+    Similar to the meld wizard but for choosing a single discard card. Returns the selected Card.
+    
 
-    **Static Displays**
+**Static Displays**
 
-    - showStaticBoardWithMessages(...)
-        
-    - void showStaticScore(...)
-        
-        Both methods **clear the screen**, disable line-buffered input (via InputGuard) to “freeze” the view, and render either the full game board (with messages) or the score summary.  They leave the console in a non-interactive state — **it's required to call** restoreInput() before invoking any prompt or wizard again.
-        
-    - void restoreInput()
-        
-        Restores the original console modes (line buffering, echo) so prompts and wizards will work correctly after a static display.
-        
+- showStaticBoardWithMessages(...)
+    
+- void showStaticScore(...)
+    
+    Both methods **clear the screen**, disable line-buffered input (via InputGuard) to “freeze” the view, and render either the full game board (with messages) or the score summary.  They leave the console in a non-interactive state — **it's required to call** restoreInput() before invoking any prompt or wizard again.
+    
+- void restoreInput()
+    
+    Restores the original console modes (line buffering, echo) so prompts and wizards will work correctly after a static display.
+    
 
-    **Internal Helpers**
+**Internal Helpers**
 
-    All FTXUI elements and layout logic are hidden behind private methods:
+All FTXUI elements and layout logic are hidden behind private methods:
 
-    - CardView getCardView(const Card&) & Element makeCardElement(...)
-        
-    - Element makeBoard(...)
-        
-    - Element makeHandGrid(...)
-        
-    - Element makeDeckInfo(...)
-        
-    - Element makeScoreInfo(...)
-        
-    - Element makeMeldGrid(...)
-        
-    - Element makePlayerInfo(...)
-        
+- CardView getCardView(const Card&) & Element makeCardElement(...)
+    
+- Element makeBoard(...)
+    
+- Element makeHandGrid(...)
+    
+- Element makeDeckInfo(...)
+    
+- Element makeScoreInfo(...)
+    
+- Element makeMeldGrid(...)
+    
+- Element makePlayerInfo(...)
+    
 
-    Each helper transforms DTOs into FTXUI Elements, applying padding, colors, and grid layouts.
+Each helper transforms DTOs into FTXUI Elements, applying padding, colors, and grid layouts.
 
 ---
 
@@ -826,7 +815,7 @@ This group on the **client** side contains a single orchestrator — **ClientCon
     - On any handleActionError, resets the relevant ActionAttemptStatus to NotAttempted, displays the error, and re-invokes the last prompt.
         
     
-4. **Separation of Concerns**
+5. **Separation of Concerns**
     
     - **ClientController** never performs I/O or serialization directly; it relies entirely on **GameView** and **ClientNetwork**.
         
