@@ -2,7 +2,6 @@
 #include "server/game_manager.hpp"
 #include "player.hpp"
 #include "team.hpp"
-#include "rule_engine.hpp"
 #include "score_details.hpp" // Included via round_manager? Explicitly add if needed.
 
 #include <stdexcept>
@@ -159,7 +158,7 @@ void GameManager::startNextRound() {
     for (Player& p : allPlayers) {
         playerRefs.emplace_back(p);
     }
-    playerRefs = RuleEngine::randomRotate(playerRefs);
+    RuleEngine::randomRotate(playerRefs);
 
     currentRound.reset(); // Reset any existing round manager
     currentRound = std::make_unique<RoundManager>(

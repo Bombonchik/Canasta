@@ -14,7 +14,7 @@ public:
     /**
      * @brief Constructor to create a player with a given name.
      */
-    explicit Player(std::string name);
+    explicit Player(const std::string& name);
 
     /**
      * @brief Default constructor for Player.

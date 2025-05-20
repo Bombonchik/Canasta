@@ -25,7 +25,6 @@ add_library(canasta_core STATIC
     app/meld.cpp
     app/player.cpp
     app/team.cpp
-    app/rule_engine.cpp
     app/team_round_state.cpp
     app/client_deck.cpp
 )
@@ -49,6 +48,7 @@ add_executable(canasta_server
     app/server/round_manager.cpp
     app/server/game_manager.cpp
     app/server/server_network.cpp
+    app/server/rule_engine.cpp
 )
 
 # Specify include directory for the server

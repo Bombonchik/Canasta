@@ -6,14 +6,29 @@
 #include "cereal/archives/binary.hpp"
 
 /**
- * @struct PlayerPublicInfo
- * @brief Struct representing public information about a player.
- * @details This struct is used to send player information to clients.
+ * @class PlayerPublicInfo
+ * @brief Class representing public information about a player.
+ * @details This class is used to send player information to clients.
  */
-struct PlayerPublicInfo {
+class PlayerPublicInfo {
+private:
     std::string name;
     std::size_t handCardCount;
     bool isCurrentTurn; // Flag if this player is the current one
+public:
+    /**
+     * @brief Default constructor for PlayerPublicInfo for serialization purposes.
+     */
+    PlayerPublicInfo() = default;
+    /**
+     * @brief Default constructor for PlayerPublicInfo.
+     */
+    PlayerPublicInfo(const std::string& playerName, std::size_t cardCount, bool currentTurn)
+        : name(playerName), handCardCount(cardCount), isCurrentTurn(currentTurn) {}
+
+    const std::string& getName() const { return name; }
+    std::size_t getHandCardCount() const { return handCardCount; }
+    bool isCurrentPlayer() const { return isCurrentTurn; }
 
     template <class Archive>
     void serialize(Archive& ar) {

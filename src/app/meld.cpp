@@ -18,8 +18,8 @@ void RedThreeMeld::initialize(const std::vector<Card>& cards) {
 
 // Implementation of RedThreeMeld::validateCards
 Status RedThreeMeld::validateCards(const std::vector<Card>& cards, std::size_t redThreeCount) const {
-    if (cards.size() + redThreeCount > 4) {
-        return std::unexpected("Red Three Meld can contain at most 4 cards");
+    if (cards.size() + redThreeCount > MAX_SPECIAL_MELD_SIZE) {
+        return std::unexpected("Red Three Meld can contain at most " + std::to_string(MAX_SPECIAL_MELD_SIZE) + " cards");
     }
     for (const auto& card : cards) {
         if (card.getType() != CardType::RedThree) {
@@ -75,7 +75,7 @@ int RedThreeMeld::getPoints() const {
 void RedThreeMeld::updatePoints() {
     const int redThreePointsValue = Card(Rank::Three, CardColor::RED).getPoints();
     int calculatedPoints = redThreeCards.size() * redThreePointsValue;
-    if (redThreeCards.size() == 4) {
+    if (redThreeCards.size() == MAX_SPECIAL_MELD_SIZE) {
         calculatedPoints *= 2; // double points for a complete Red Three Meld
     }
     points = calculatedPoints; // Update the member variable
@@ -96,11 +96,11 @@ Status BlackThreeMeld::checkInitialization(const std::vector<Card>& cards) const
     if (isActive) {
         return std::unexpected("Black Three Meld is already initialized");
     }
-    if (cards.size() < 3) {
-        return std::unexpected("Black Three Meld must contain at least 3 cards");
+    if (cards.size() < MIN_MELD_SIZE) {
+        return std::unexpected("Black Three Meld must contain at least " + std::to_string(MIN_MELD_SIZE) + " cards");
     }
-    if (cards.size() > 4) {
-        return std::unexpected("Black Three Meld can contain at most 4 cards");
+    if (cards.size() > MAX_SPECIAL_MELD_SIZE) {
+        return std::unexpected("Black Three Meld can contain at most " + std::to_string(MAX_SPECIAL_MELD_SIZE) + " cards");
     }
     for (const auto& card : cards) {
         if (card.getType() != CardType::BlackThree) {

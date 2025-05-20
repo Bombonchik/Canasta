@@ -16,7 +16,7 @@
 #include <optional>
 #include "card.hpp"
 #include "meld.hpp"
-#include "rule_engine.hpp"
+#include "game_state.hpp"
 
 /**
  * @enum ClientMessageType
@@ -42,14 +42,24 @@ enum class ServerMessageType : uint8_t {
     LoginFailure,
 };
 
+constexpr std::size_t MAX_MESSAGE_SIZE = 64 * 1024; // 64 KB
+
 /**
- * @struct ActionError
- * @brief Struct representing an error message sent from the server to the client.
+ * @class ActionError
+ * @brief Class representing an error message sent from the server to the client.
  * @details Contains a message and an optional status code.
  */
-struct ActionError {
+class ActionError {
+private:
     std::string     message;
     std::optional<TurnActionStatus> status;
+public:
+    ActionError() = default; // Default constructor for serialization
+    ActionError(const std::string& msg, std::optional<TurnActionStatus> stat = std::nullopt)
+        : message(msg), status(stat) {}
+
+    const std::string& getMessage() const { return message; }
+    std::optional<TurnActionStatus> getStatus() const { return status; }
 
     template <class Archive>
     void serialize(Archive& ar) {

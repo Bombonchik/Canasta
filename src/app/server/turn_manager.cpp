@@ -1,5 +1,4 @@
 #include "server/turn_manager.hpp"
-#include "rule_engine.hpp" // Include for static RuleEngine methods
 #include <stdexcept> // For potential exceptions if needed
 #include <numeric>   // For std::accumulate if calculating points
 #include <cassert>
@@ -94,8 +93,10 @@ TurnActionResult TurnManager::handleTakeDiscardPile() {
     //hand.get().addCards(takeDiscardPileResult.value(), !teamHasInitialRankMeld);
     hand.get().addCards(takeDiscardPileResult.value(), true);
 
-    spdlog::debug("Setting meld commitment to meld commitment: rank {} cound {} type {}", to_string(checkTakingDiscardPileResult.value().rank),
-        checkTakingDiscardPileResult.value().count, static_cast<int>(checkTakingDiscardPileResult.value().type));
+    spdlog::debug("Setting meld commitment to meld commitment: rank {} cound {} type {}",
+        to_string(checkTakingDiscardPileResult.value().getRank()),
+        checkTakingDiscardPileResult.value().getCount(),
+        static_cast<int>(checkTakingDiscardPileResult.value().getType()));
     commitment = checkTakingDiscardPileResult.value();
 
     tookDiscardPile = true; // Assume success for now
@@ -259,7 +260,8 @@ std::expected<std::size_t, TurnActionResult> TurnManager::checkMeldRequestsCards
         });
     auto cardsInHand = std::deque<Card>(hand.get().getCards());
     for (const auto& request : meldRequests) {
-        for (const auto& card : request.cards) {
+        auto& requestCards = request.getCards();
+        for (const auto& card : requestCards) {
             auto it = std::find(cardsInHand.begin(), cardsInHand.end(), card);
             if (it == cardsInHand.end()) {
                 return std::unexpected(TurnActionResult{
@@ -280,18 +282,20 @@ void TurnManager::processMeldRequests(
     std::vector<RankMeldProposal>& additionProposals
 ) {
     for (const auto& request : meldRequests) {
+        auto rank = request.getRank();
+        auto cards = request.getCards();
         spdlog::debug("Processing meld request of rank = {}",
-            request.addToRank.has_value() ? to_string(request.addToRank.value()) : "None");
-        for (const auto& card : request.cards) {
+            rank.has_value() ? to_string(rank.value()) : "None");
+        for (const auto& card : cards) {
             spdlog::debug("    Card: {}", card.toString());
         }
-        if (request.addToRank.has_value()) {
+        if (rank.has_value()) {
             additionProposals.push_back(RankMeldProposal{
-                request.cards,
-                request.addToRank.value()
+                cards,
+                rank.value()
             });
         } else {
-            meldSuggestions.push_back(request.cards);
+            meldSuggestions.push_back(cards);
         }
     }
 }
@@ -309,8 +313,8 @@ std::expected<void, TurnActionResult> TurnManager::processMeldSuggestions(
                 suggestedMeld.error()
             });
         auto meld = suggestedMeld.value();
-        auto possibleRank = meld.rank;
-        if (meld.type == CandidateMeldType::BlackThree) {
+        auto possibleRank = meld.getRank();
+        if (meld.getType() == CandidateMeldType::BlackThree) {
             if (!teamHasInitialRankMeld)
                 return std::unexpected(TurnActionResult{
                     TurnActionStatus::Error_InvalidMeld,
@@ -344,9 +348,10 @@ std::expected<void, TurnActionResult> TurnManager::processRankInitializationProp
         });
     for (std::size_t i = 0; i < rankInitializationProposals.size(); ++i) {
         auto& proposal = rankInitializationProposals[i];
+        auto& proposalCards = proposal.getCards();
         spdlog::debug("Processing meld proposal {}: cards = {}",
-            i + 1,proposal.cards.size());
-        for (const auto& card : proposal.cards) {
+            i + 1, proposalCards.size());
+        for (const auto& card : proposalCards) {
             spdlog::debug("Card {}: {}", i + 1, card.toString());
         }
     }
@@ -371,7 +376,7 @@ std::expected<void, TurnActionResult> TurnManager::processRankInitializationProp
                 " points."
             });
     }
-    if (commitment.has_value() && commitment.value().type == MeldCommitmentType::Initialize)
+    if (commitment.has_value() && commitment.value().getType() == MeldCommitmentType::Initialize)
         return checkInitializationCommitment(rankInitializationProposals, commitment.value());
     return {}; // Return success
 }
@@ -414,7 +419,7 @@ std::expected<void, TurnActionResult> TurnManager::processRankAdditionProposals
             TurnActionStatus::Error_InvalidMeld,
             additionStatus.error()
         });
-    if (commitment.has_value() && commitment.value().type == MeldCommitmentType::AddToExisting)
+    if (commitment.has_value() && commitment.value().getType() == MeldCommitmentType::AddToExisting)
         return checkAddToExistingCommitment(rankAdditionProposals, commitment.value());
     return {}; // Return success
 }
@@ -453,29 +458,32 @@ std::expected<Card, TurnActionResult> TurnManager::drawUntilNonRedThree(ServerDe
 std::expected<void, TurnActionResult> TurnManager::checkInitializationCommitment
 (const std::vector<RankMeldProposal>& initializationProposals,
 const MeldCommitment& initializationCommitment) const {
+    auto initializationCommitmentRank = initializationCommitment.getRank();
+    auto initializationCommitmentCount = initializationCommitment.getCount();
     auto commitmentProposal = std::find_if(
         initializationProposals.begin(),
         initializationProposals.end(),
-        [&initializationCommitment](const RankMeldProposal& proposal) {
-            return proposal.rank == initializationCommitment.rank;
+        [&](const RankMeldProposal& proposal) {
+            return proposal.getRank() == initializationCommitmentRank;
         }
     );
     if (commitmentProposal == initializationProposals.end())
         return std::unexpected(TurnActionResult{
             TurnActionStatus::Error_InvalidMeld,
-            "Meld with rank " + to_string(initializationCommitment.rank) + " not found."
+            "Meld with rank " + to_string(initializationCommitmentRank) + " not found."
         });
     std::size_t commitmentCardCount = 0;
-    for (const auto& card : commitmentProposal->cards) {
-        if (card.getRank() == initializationCommitment.rank)
+    auto& commitmentProposalCards = commitmentProposal->getCards();
+    for (const auto& card : commitmentProposalCards) {
+        if (card.getRank() == initializationCommitmentRank)
             commitmentCardCount++;
     }
-    if (commitmentCardCount < initializationCommitment.count)
+    if (commitmentCardCount < initializationCommitmentCount)
         return std::unexpected(TurnActionResult{
             TurnActionStatus::Error_InvalidMeld,
-            "Meld with rank " + to_string(initializationCommitment.rank) +
-            " must contain at least " + std::to_string(initializationCommitment.count) +
-            " cards with rank " + to_string(initializationCommitment.rank) + "."
+            "Meld with rank " + to_string(initializationCommitmentRank) +
+            " must contain at least " + std::to_string(initializationCommitmentCount) +
+            " cards with rank " + to_string(initializationCommitmentRank) + "."
         });
     return {}; // Return success
 }
@@ -483,30 +491,33 @@ const MeldCommitment& initializationCommitment) const {
 std::expected<void, TurnActionResult> TurnManager::checkAddToExistingCommitment
 (const std::vector<RankMeldProposal>& additionProposals,
 const MeldCommitment& addToExistingCommitment) const {
+    auto addToExistingCommitmentRank = addToExistingCommitment.getRank();
+    auto addToExistingCommitmentCount = addToExistingCommitment.getCount();
     auto commitmentProposal = std::find_if(
         additionProposals.begin(),
         additionProposals.end(),
-        [&addToExistingCommitment](const RankMeldProposal& proposal) {
-            return proposal.rank == addToExistingCommitment.rank;
+        [&](const RankMeldProposal& proposal) {
+            return proposal.getRank() == addToExistingCommitmentRank;
         }
     );
     if (commitmentProposal == additionProposals.end())
         return std::unexpected(TurnActionResult{
             TurnActionStatus::Error_InvalidMeld,
-            "Card with rank " + to_string(addToExistingCommitment.rank) + 
+            "Card with rank " + to_string(addToExistingCommitmentRank) + 
             " was not added to the existing meld."
         });
     std::size_t commitmentCardCount = 0;
-    for (const auto& card : commitmentProposal->cards) {
-        if (card.getRank() == addToExistingCommitment.rank)
+    auto& commitmentProposalCards = commitmentProposal->getCards();
+    for (const auto& card : commitmentProposalCards) {
+        if (card.getRank() == addToExistingCommitmentRank)
             commitmentCardCount++;
     }
-    if (commitmentCardCount < addToExistingCommitment.count)
+    if (commitmentCardCount < addToExistingCommitmentCount)
         return std::unexpected(TurnActionResult{
             TurnActionStatus::Error_InvalidMeld,
-            "You should add to meld with rank " + to_string(addToExistingCommitment.rank) +
-            " at least " + std::to_string(addToExistingCommitment.count) +
-            " cards with rank " + to_string(addToExistingCommitment.rank) + "."
+            "You should add to meld with rank " + to_string(addToExistingCommitmentRank) +
+            " at least " + std::to_string(addToExistingCommitmentCount) +
+            " cards with rank " + to_string(addToExistingCommitmentRank) + "."
         });
     return {}; // Return success
 }
@@ -514,13 +525,14 @@ const MeldCommitment& addToExistingCommitment) const {
 void TurnManager::initializeRankMelds(
     const std::vector<RankMeldProposal>& rankInitializationProposals) {
     for (const auto& proposal : rankInitializationProposals) {
-        auto* meld = teamRoundState.get().getMeldForRank(proposal.rank);
+        auto* meld = teamRoundState.get().getMeldForRank(proposal.getRank());
         assert(meld && "Invariant violated: meld should never be nullopt here");
-        auto status = meld->checkInitialization(proposal.cards);
+        auto& proposalCards = proposal.getCards();
+        auto status = meld->checkInitialization(proposalCards);
         if (!status.has_value()) // Should never happen
             throw std::runtime_error(status.error());
-        meld->initialize(proposal.cards);
-        for (const auto& card : proposal.cards) {
+        meld->initialize(proposalCards);
+        for (const auto& card : proposalCards) {
             // Remove the cards from the hand
             assert(hand.get().removeCard(card) && "Card should be in hand");
         }
@@ -530,11 +542,12 @@ void TurnManager::initializeRankMelds(
 void TurnManager::revertRankMeldsInitialization(
     const std::vector<RankMeldProposal>& rankInitializationProposals) {
     for (const auto& proposal : rankInitializationProposals) {
-        auto* meld = teamRoundState.get().getMeldForRank(proposal.rank);
+        auto* meld = teamRoundState.get().getMeldForRank(proposal.getRank());
         assert(meld && meld->isInitialized() && "Invariant violated: meld should always be initialized here");
         meld->reset();
+        auto& proposalCards = proposal.getCards();
         // Revert the hand state
-        for (const auto& card : proposal.cards) {
+        for (const auto& card : proposalCards) {
             hand.get().addCard(card); // Add the cards back to the hand
         }
     }
@@ -543,13 +556,14 @@ void TurnManager::revertRankMeldsInitialization(
 void TurnManager::addCardsToExistingMelds(
     const std::vector<RankMeldProposal>& additionProposals) {
     for (const auto& proposal : additionProposals) {
-        auto* meld = teamRoundState.get().getMeldForRank(proposal.rank);
+        auto& proposalCards = proposal.getCards();
+        auto* meld = teamRoundState.get().getMeldForRank(proposal.getRank());
         assert(meld && "Invariant violated: meld should never be nullopt here");
-        auto status = meld->checkCardsAddition(proposal.cards);
+        auto status = meld->checkCardsAddition(proposalCards);
         if (!status.has_value()) // Should never happen
             throw std::runtime_error(status.error());
-        meld->addCards(proposal.cards, /*reversible = */true);
-        for (const auto& card : proposal.cards) {
+        meld->addCards(proposalCards, /*reversible = */true);
+        for (const auto& card : proposalCards) {
             // Remove the cards from the hand
             assert(hand.get().removeCard(card) && "Card should be in hand");
         }
@@ -559,10 +573,11 @@ void TurnManager::addCardsToExistingMelds(
 void TurnManager::revertRankMeldsAddition(
     const std::vector<RankMeldProposal>& additionProposals) {
     for (const auto& proposal : additionProposals) {
-        auto* meld = teamRoundState.get().getMeldForRank(proposal.rank);
+        auto* meld = teamRoundState.get().getMeldForRank(proposal.getRank());
         assert(meld && meld->isInitialized() && "Invariant violated: meld should always be initialized here");
         meld->revertAddCards(); // should work
-        for (const auto& card : proposal.cards) {
+        auto& proposalCards = proposal.getCards();
+        for (const auto& card : proposalCards) {
             hand.get().addCard(card); // Add the cards back to the hand
         }
     }
@@ -575,7 +590,7 @@ void TurnManager::initializeBlackThreeMeld(
         return; // No Black Three proposal to initialize
     auto* meld = teamRoundState.get().getBlackThreeMeld();
     assert(meld && "Invariant violated: meld should never be nullopt here");
-    auto blackThreeCards = blackThreeProposal->cards;
+    auto blackThreeCards = blackThreeProposal.value().getCards();
     auto status = meld->checkInitialization(blackThreeCards);
     if (!status.has_value()) // Should never happen
         throw std::runtime_error(status.error());

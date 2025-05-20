@@ -1,6 +1,5 @@
 #include "server/round_manager.hpp"
 #include "server/turn_manager.hpp"
-#include "rule_engine.hpp"
 #include "player.hpp"
 #include "team_round_state.hpp"
 #include "score_details.hpp"
@@ -81,7 +80,7 @@ TurnActionResult RoundManager::handleTakeDiscardPileRequest() {
         return {TurnActionStatus::Error_InvalidAction, "Not player's turn or round not in progress."};
     }
     TurnActionResult result = currentTurnManager->handleTakeDiscardPile();
-    if (result.status != TurnActionStatus::Success_TurnContinues && isMainDeckEmpty)
+    if (result.getStatus() != TurnActionStatus::Success_TurnContinues && isMainDeckEmpty)
         result = {
             TurnActionStatus::Error_MainDeckEmptyDiscardPileCantBeTaken,
             "Main deck is empty. Discard pile can't be taken."
@@ -153,7 +152,9 @@ std::map<std::string, ScoreBreakdown> RoundManager::calculateScores() const {
     for (auto& playerRef : playersInTurnOrder) {
         auto& player = playerRef.get();
         const auto& teamName = getTeamForPlayer(player).getName();
-        roundScores[teamName].handPenaltyPoints -= player.getHand().calculatePenalty();
+        auto& currentScoreBreakdown = roundScores[teamName];
+        currentScoreBreakdown.setHandPenaltyPoints(
+            currentScoreBreakdown.getHandPenaltyPoints() - player.getHand().calculatePenalty());
     }
 
     return roundScores;
@@ -209,7 +210,7 @@ void RoundManager::setupTurnManagerForCurrentPlayer() {
 
 void RoundManager::processTurnResult(const TurnActionResult& result) {
     // Handle actions that might end the round or turn
-    switch (result.status) {
+    switch (result.getStatus()) {
         case TurnActionStatus::Success_TurnOver:
             advanceToNextPlayer();
             if (!isRoundOver()) {

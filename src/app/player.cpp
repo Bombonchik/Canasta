@@ -2,7 +2,7 @@
 #include <utility> // For std::move
 
 // Constructor - Takes a player name and moves it into the member variable
-Player::Player(std::string name) : name(std::move(name)) {
+Player::Player(const std::string& name) : name(name) {
     // The hand member is default-initialized automatically
 }
 

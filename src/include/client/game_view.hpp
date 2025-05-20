@@ -18,7 +18,6 @@
 #include "game_state.hpp"
 #include "player_public_info.hpp"
 #include "meld.hpp"
-#include "rule_engine.hpp"
 #include "client_deck.hpp"
 #include "client/canasta_console.hpp"
 #include "client/input_guard.hpp"
@@ -26,29 +25,45 @@
 using namespace ftxui;
 
 /**
- * @struct CardView
- * @brief Struct representing a card view for display purposes.
+ * @class CardView
+ * @brief Class representing a card view for display purposes.
  */
-struct CardView {
+class CardView {
+private:
     std::string label;
     ftxui::Color color;
+public:
+    CardView(const std::string& label, ftxui::Color color)
+        : label(label), color(color) {}
+
+    const std::string& getLabel() const { return label; }
+    ftxui::Color getColor() const { return color; }
 };
 
 /**
- * @struct MeldView
- * @brief Struct representing a meld view for display purposes.
+ * @class MeldView
+ * @brief Class representing a meld view for display purposes.
  */
-struct MeldView {
+class MeldView {
+private:
     Rank rank;
     std::vector<Card> cards;
-    bool isInitialized;
+    bool isInitializedFlag;
+public:
+    MeldView(Rank rank, const std::vector<Card>& cards, bool isInitialized)
+        : rank(rank), cards(cards), isInitializedFlag(isInitialized) {}
+
+    Rank getRank() const { return rank; }
+    const std::vector<Card>& getCards() const { return cards; }
+    bool isInitialized() const { return isInitializedFlag; }
 };
 
 /**
- * @struct BoardState
- * @brief Struct representing the game board state for display purposes.
+ * @class BoardState
+ * @brief Class representing the game board state for display purposes.
  */
-struct BoardState {
+class BoardState {
+private:
     std::vector<MeldView> myTeamMelds;
     std::vector<MeldView> opponentTeamMelds;
     Hand myHand;
@@ -61,13 +76,47 @@ struct BoardState {
     int opponentTeamTotalScore;
     int myTeamMeldPoints;
     int opponentTeamMeldPoints;
+
+    static constexpr int RANK_MELD_OFFSET = 2; // Offset for rank melds (Four to Ace)
+public:
+
+    // Getters
+    std::vector<MeldView> getMyTeamMelds() const { return myTeamMelds; }
+    std::vector<MeldView> getOpponentTeamMelds() const { return opponentTeamMelds; }
+    Hand getMyHand() const { return myHand; }
+    ClientDeck getDeckState() const { return deckState; }
+    PlayerPublicInfo getMyPlayer() const { return myPlayer; }
+    PlayerPublicInfo getOppositePlayer() const { return oppositePlayer; }
+    std::optional<PlayerPublicInfo> getLeftPlayer() const { return leftPlayer; }
+    std::optional<PlayerPublicInfo> getRightPlayer() const { return rightPlayer; }
+    int getMyTeamTotalScore() const { return myTeamTotalScore; }
+    int getOpponentTeamTotalScore() const { return opponentTeamTotalScore; }
+    int getMyTeamMeldPoints() const { return myTeamMeldPoints; }
+    int getOpponentTeamMeldPoints() const { return opponentTeamMeldPoints; }
+
+    // Setters
+    void setMyTeamMelds(const std::vector<MeldView>& melds) { myTeamMelds = melds; }
+    void setOpponentTeamMelds(const std::vector<MeldView>& melds) { opponentTeamMelds = melds; }
+    void setMyHand(const Hand& hand) { myHand = hand; }
+    void setDeckState(const ClientDeck& deck) { deckState = deck; }
+    void setMyPlayer(const PlayerPublicInfo& player) { myPlayer = player; }
+    void setOppositePlayer(const PlayerPublicInfo& player) { oppositePlayer = player; }
+    void setLeftPlayer(const PlayerPublicInfo& player) { leftPlayer = player; }
+    void setRightPlayer(const PlayerPublicInfo& player) { rightPlayer = player; }
+    void setMyTeamTotalScore(int score) { myTeamTotalScore = score; }
+    void setOpponentTeamTotalScore(int score) { opponentTeamTotalScore = score; }
+    void setMyTeamMeldPoints(int points) { myTeamMeldPoints = points; }
+    void setOpponentTeamMeldPoints(int points) { opponentTeamMeldPoints = points; }
+
+    static std::optional<std::size_t> getMeldIndexForRank(Rank rank);
 };
 
 /**
- * @struct ScoreState
- * @brief Struct representing the score state for display purposes.
+ * @class ScoreState
+ * @brief Class representing the score state for display purposes.
  */
-struct ScoreState {
+class ScoreState {
+private:
     ScoreBreakdown myTeamScoreBreakdown;
     ScoreBreakdown opponentTeamScoreBreakdown;
     std::size_t playersCount;
@@ -75,6 +124,25 @@ struct ScoreState {
     int opponentTeamTotalScore;
     bool isGameOver;
     std::optional<ClientGameOutcome> gameOutcome;
+public:
+
+    // Getters
+    ScoreBreakdown getMyTeamScoreBreakdown() const { return myTeamScoreBreakdown; }
+    ScoreBreakdown getOpponentTeamScoreBreakdown() const { return opponentTeamScoreBreakdown; }
+    std::size_t getPlayersCount() const { return playersCount; }
+    int getMyTeamTotalScore() const { return myTeamTotalScore; }
+    int getOpponentTeamTotalScore() const { return opponentTeamTotalScore; }
+    bool getIsGameOver() const { return isGameOver; }
+    std::optional<ClientGameOutcome> getGameOutcome() const { return gameOutcome; }
+
+    // Setters
+    void setMyTeamScoreBreakdown(const ScoreBreakdown& breakdown) { myTeamScoreBreakdown = breakdown; }
+    void setOpponentTeamScoreBreakdown(const ScoreBreakdown& breakdown) { opponentTeamScoreBreakdown = breakdown; }
+    void setPlayersCount(std::size_t count) { playersCount = count; }
+    void setMyTeamTotalScore(int score) { myTeamTotalScore = score; }
+    void setOpponentTeamTotalScore(int score) { opponentTeamTotalScore = score; }
+    void setIsGameOver(bool gameOver) { isGameOver = gameOver; }
+    void setGameOutcome(std::optional<ClientGameOutcome> outcome) { gameOutcome = outcome; }
 };
 
 
@@ -137,6 +205,13 @@ public:
     void restoreInput();
 
 private:
+    static constexpr int PANE_HIGHT = 6; ///< Height of the pane for displaying options
+    static constexpr int PADDING_WITH_MESSAGE = 2;     ///< Padding for the display
+    static constexpr int MAX_OPTIONS_IN_PANE = PANE_HIGHT - PADDING_WITH_MESSAGE; ///< Maximum options in the pane
+    static constexpr int SCORE_WIDTH = 25; ///< Width of the score display
+    static constexpr std::size_t MAX_NAME_LENGTH = 10; ///< Maximum length of player names
+    static constexpr std::size_t MAX_MELD_GRID_ROWS = 8; ///< Maximum rows in the meld grid
+
     CanastaConsole console;                 ///< Console for output
     ScreenInteractive screen;               ///< Screen for interactive input/output
     std::optional<InputGuard> inputGuard;   /// Input guard for console state
@@ -144,7 +219,7 @@ private:
     /**
      * @brief Get the card view for display purposes.
      * @param card The card to display.
-     * @return The CardView struct containing the label and color.
+     * @return The CardView containing the label and color.
      */
     CardView getCardView(const Card& card);
     /**

@@ -3,7 +3,7 @@
 #include <stdexcept> // For potential errors
 
 // Constructor - Takes a team name and moves it into the member variable
-Team::Team(std::string name) : name(std::move(name)), totalScore(0) {}
+Team::Team(const std::string& name) : name(name), totalScore(0) {}
 
 // Get the team's name
 const std::string& Team::getName() const {

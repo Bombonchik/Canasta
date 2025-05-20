@@ -7,8 +7,6 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "client/client_network.hpp"
-#include "client/canasta_console.hpp"
-#include "client/game_view.hpp"
 #include "client/client_controller.hpp"
 
 // Constants
@@ -28,9 +26,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    GameView gameView;
-    CanastaConsole console;
-
     try {
         configureLogger(); // Configure the logger
 
@@ -39,7 +34,7 @@ int main(int argc, char* argv[]) {
         // Connect to the server
         auto clientNetwork = std::make_shared<ClientNetwork>(ioContext);
 
-        auto clientController = std::make_shared<ClientController>(clientNetwork, gameView);
+        auto clientController = std::make_shared<ClientController>(clientNetwork);
         clientController->connect("127.0.0.1", std::to_string(SERVER_PORT));
 
         ioContext.run();

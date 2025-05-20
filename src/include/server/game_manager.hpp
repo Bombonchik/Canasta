@@ -11,7 +11,7 @@
 #include "player.hpp"
 #include "team.hpp"
 #include "server/round_manager.hpp" // Manages a single round
-#include "rule_engine.hpp"   // For GameOutcome and WINNING_SCORE
+#include "server/rule_engine.hpp"   // For GameOutcome and WINNING_SCORE
 
 
 /**

@@ -15,7 +15,7 @@
 #include "card.hpp"
 #include "turn_manager.hpp" // Includes TurnActionResult, MeldRequest etc.
 #include "score_details.hpp"
-#include "rule_engine.hpp" // For GameOutcome
+#include "server/rule_engine.hpp" // For GameOutcome
 #include "client_deck.hpp"
 #include "player_public_info.hpp"
 
@@ -118,6 +118,7 @@ public:
      * @brief Gets the state of the team for a given player.
      * @param player The player whose team state is requested.
      * @return TeamRoundState object for the player's team in the current round.
+     * @details This function clones the TeamRoundState object for the player.
      */
     TeamRoundState getTeamStateForTeam(const Team& team) const;
 

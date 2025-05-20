@@ -8,11 +8,12 @@
 
 // Represents the view of the deck state visible to a client (DTO).
 /**
- * @struct ClientDeck
+ * @class ClientDeck
  * @brief Represents the ServerDeck state visible to a client.
- * @details This struct is used to send deck information to the client.
+ * @details This class is used to send deck information to the client.
  */
-struct ClientDeck {
+class ClientDeck {
+private:
     /**
      * @brief Number of cards left in the main deck.
      */
@@ -32,6 +33,7 @@ struct ClientDeck {
      */
     bool isDiscardPileFrozen = false;
 
+public:
     /**
      * @brief Default constructor for ClientDeck only for serialization purposes.
      */
