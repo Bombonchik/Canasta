@@ -1,17 +1,17 @@
 @startuml ClientDiagram
 package "Client" {
 
-    class CanastaConsole {
+    class CanastaConsole #FCD299 {
         + print(msg, color, newline)
         + clear()
     }
 
-    class InputGuard {
+    class InputGuard #FCD299 {
         + InputGuard()
         + ~InputGuard()
     }
 
-    class ClientNetwork {
+    class ClientNetwork #CBE3D1 {
         - ioContext: io_context&
         - socket: ip::tcp::socket
         - resolver: ip::tcp::resolver
@@ -33,7 +33,7 @@ package "Client" {
         + setOnLoginFailure(callback: LoginFailureCallback)
         + setOnDisconnect(callback: VoidCallback)
     }
-    class ClientController {
+    class ClientController #F4D6E1 {
         - network: shared_ptr<ClientNetwork>
         - localPlayerName: string
         - view: GameView
@@ -44,18 +44,18 @@ package "Client" {
         + processPlayerTurn(optional<std::string> message)
     }
 
-    class CardView{
+    class CardView #FCD299{
         + getLabel(): string
         + getColor(): Color
     }
 
-    class MeldView{
+    class MeldView #FCD299 {
         + getRank(): Rank
         + getCards(): vector<Card>
         + isInitialized(): bool
     }
 
-    class BoardState {
+    class BoardState #FCD299 {
         + get/set MyTeamMelds(): vector<MeldView>
         + get/set OpponentTeamMelds(): vector<MeldView>
         + get/set MyHand(): Hand
@@ -71,7 +71,7 @@ package "Client" {
         + getMeldIndexForRank(rank: Rank): optional<size_t>
     }
 
-    class ScoreState {
+    class ScoreState #FCD299 {
         + get/set MyTeamScoreBreakdown(): ScoreBreakdown
         + get/set OpponentTeamScoreBreakdown(): ScoreBreakdown
         + get/set getPlayersCount(): size_t
@@ -82,10 +82,10 @@ package "Client" {
     }
 
     ClientController o-- ClientNetwork : communicates
-    ClientController *-- BoardState : manages
-    ClientController *-- ScoreState : manages
-
-    class GameView {
+    ClientController *-- BoardState : creates
+    ClientController *-- ScoreState : creates
+    
+    class GameView #FCD299 {
         - console: CanastaConsole
         - screen: ScreenInteractive
         - inputGuard: optional<InputGuard>

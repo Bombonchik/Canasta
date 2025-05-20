@@ -27,7 +27,7 @@ package "Canasta Core" {
     }
 
     '––– Card class –––
-    class Card {
+    class Card #C0DBE3 {
         - rank: Rank
         - color: CardColor
         - type: CardType
@@ -42,7 +42,7 @@ package "Canasta Core" {
 
     '––– Hand class –––
 
-    class Hand {
+    class Hand #C0DBE3 {
         - cards: deque<Card>
         --
         + addCard(card: Card)
@@ -63,7 +63,7 @@ package "Canasta Core" {
     }
 
     '––– Meld classes –––
-    class BaseMeld {
+    class BaseMeld #C0DBE3 {
         - points: bool
         --
         + isInitialized(): bool
@@ -81,7 +81,7 @@ package "Canasta Core" {
         + getCards(): vector<Card>
     }
 
-    class "Meld\n<R>" {
+    class "Meld\n<R>" #C0DBE3 {
         - isCanasta: bool
         - naturalCards: vector<Card>
         - wildCards: vector<Card>
@@ -92,13 +92,13 @@ package "Canasta Core" {
         ...
     }
 
-    class RedThreeMeld {
+    class RedThreeMeld #C0DBE3 {
         - redThreeCards: vector<Card>
         --
         + virtual overrides ...
     }
 
-    class BlackThreeMeld {
+    class BlackThreeMeld #C0DBE3 {
         - blackThreeCards: vector<Card>
         --
         + virtual overrides ...
@@ -112,8 +112,20 @@ package "Canasta Core" {
     RedThreeMeld *-- Card : has
     BlackThreeMeld *-- Card : has
 
+    class MeldRequest #E2C0E3 {
+        - cards: vector<Card>
+        - addToRank: optional<Rank>
+        --
+        + get/set Rank(): optional<Rank>
+        + getCards(): vector<Card>
+        + appendCards(): vector<Card>
+    }
+
+    MeldRequest *-- Card
+    MeldRequest ..> Rank
+
     '––– Player class –––
-    class Player {
+    class Player #C0DBE3 {
         - name: string
         - hand: Hand
         --
@@ -127,7 +139,7 @@ package "Canasta Core" {
 
     '––– Team class –––
 
-    class Team {
+    class Team #F4D6E1 {
         - name: string
         - totalScore: int
         --
@@ -141,7 +153,7 @@ package "Canasta Core" {
     Team o-- "1/2" Player : has member(s)
 
     '––– TeamRoundState class –––
-    class TeamRoundState {
+    class TeamRoundState #C0DBE3 {
         - melds: vector<BaseMeld*>
         --
         + addMeld(meld: BaseMeld)
@@ -160,7 +172,7 @@ package "Canasta Core" {
     TeamRoundState *-- "1" BlackThreeMeld : has
 
     '––– ClientDeck class –––
-    class ClientDeck {
+    class ClientDeck #E2C0E3 {
         + getTopDiscardCard(): optional<Card>
         + getDiscardPileSize(): size_t
         + getMainDeckSize(): size_t
@@ -168,7 +180,7 @@ package "Canasta Core" {
     }
 
     '––– ScoreBreakdown class –––
-    class ScoreBreakdown {
+    class ScoreBreakdown #E2C0E3 {
         + get/set NaturalCanastaBonus(): int
         + get/set MixedCanastaBonus(): int
         + get/set MeldedCardsPoints(): int
@@ -179,24 +191,26 @@ package "Canasta Core" {
     }
 
     '––– PlayerPublicInfo class –––
-    class PlayerPublicInfo {
+    class PlayerPublicInfo #E2C0E3 {
         + getName(): string
         + getHandCardCount(): int
         + isCurrentPlayer(): bool
     }
 
     '––– ClientGameState class –––
-    class ClientGameState {
+    class ClientGameState #E2C0E3 {
         + get/set DeckState(): ClientDeck
         + get/set MyPlayerData(): Player
         + get/set AllPlayersPublicInfo(): vector<PlayerPublicInfo>
         + get/set MyTeamState(): TeamRoundState
         + get/set OpponentTeamState(): TeamRoundState
         + get/set MyTeamTotalScore(): int
+        + get/set OpponentTeamTotalScore(): int
         + get/set IsRoundOver(): bool
-        + get/set MyTeamScoreBreakdown(): ScoreBreakdown
-        + get/set OpponentTeamScoreBreakdown(): ScoreBreakdown
-        + get/set GameOutcome(): ClientGameOutcome
+        + get/set MyTeamScoreBreakdown(): optional<ScoreBreakdown>
+        + get/set OpponentTeamScoreBreakdown(): optional<ScoreBreakdown>
+        + get/set IsGameOver(): bool
+        + get/set GameOutcome(): optional<ClientGameOutcome>
         + get/set LastActionDescription(): string
         + get/set Status(): optional<TurnActionStatus>
     }

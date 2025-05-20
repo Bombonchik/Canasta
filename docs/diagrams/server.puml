@@ -3,7 +3,7 @@
 skinparam packageStyle rect
 
 package "Server" {
-    class ServerDeck {
+    class ServerDeck #F4D6E1 {
         - mainDeck: vector<Card>
         - discardPile: vector<Card>
         --
@@ -15,7 +15,7 @@ package "Server" {
         + isFrozen(): bool
     }
 
-    class TurnManager {
+    class TurnManager #F4D6E1 {
         - player: Player*
         - hand: Hand*
         - teamRoundState: TeamRoundState*
@@ -34,13 +34,13 @@ package "Server" {
         AddToExisting
     }
 
-    class MeldCommitment {
+    class MeldCommitment #F4D6E1 {
         + getType(): MeldCommitmentType
         + getRank(): Rank
         + getCount(): size_t
     }
 
-    class RuleEngine {
+    class RuleEngine #F4D6E1 {
         + canDiscard(playerHand: Hand&, discardCard: Card&): bool
         + suggestMeld(cards: vector<Card>): expected<MeldSuggestion, string>
         + checkGameOutcome(...): GameOutcome
@@ -60,7 +60,7 @@ package "Server" {
 
     TurnManager ..> RuleEngine : uses
 
-    class RoundManager {
+    class RoundManager #F4D6E1 {
         - serverDeck: ServerDeck
         - team1State: TeamRoundState
         - team2State: TeamRoundState
@@ -83,7 +83,7 @@ package "Server" {
 
     RoundManager ..> RuleEngine : uses
 
-    class Session {
+    class Session #CBE3D1 {
         - socket: ip::tcp::socket socket
         - playerName: string
         - joined: bool
@@ -93,7 +93,7 @@ package "Server" {
         + getPlayerName(): string
     }
 
-    class GameManager {
+    class GameManager #F4D6E1 {
         - allPlayers: vector<Player>
         - team1: Team
         - team2: Team
@@ -114,7 +114,7 @@ package "Server" {
 
     GameManager ..> RuleEngine : uses
 
-    class ServerNetwork {
+    class ServerNetwork #CBE3D1 {
         - ioContext: io_context&
         - acceptor: ip::tcp::acceptor
         - sessions: map<string, SessionPtr>
