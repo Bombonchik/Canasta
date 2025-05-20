@@ -479,17 +479,17 @@ int GameView::promptChoiceWithBoard(
 
         if (e == Event::ArrowDown) {
             if (selected + 1 < n) {
-            selected++;
-            if (selected >= scroll + vis)
-                scroll = selected - vis + 1;
+                selected++;
+                if (selected >= scroll + vis)
+                    scroll = selected - vis + 1;
             }
             return true;
         }
         if (e == Event::ArrowUp) {
             if (selected > 0) {
-            selected--;
-            if (selected < scroll)
-                scroll = selected;
+                selected--;
+                if (selected < scroll)
+                    scroll = selected;
             }
             return true;
         }
@@ -547,7 +547,7 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
         for (auto& c : working.getCards()) {
             if (c.getRank()==r ||
             c.getRank()==Rank::Joker || c.getRank()==Rank::Two)
-            bucket.push_back(c);
+                bucket.push_back(c);
         }
         return bucket;
     };
@@ -614,9 +614,9 @@ std::vector<MeldRequest> GameView::runMeldWizard(const BoardState& boardState) {
             std::size_t vis = PANE_HIGHT - PADDING_WITH_MESSAGE;
             if (e==Event::ArrowDown) {
                 if (rankIdx+1 < n) {
-                rankIdx++;
-                if (rankIdx >= rankScroll + vis)
-                    rankScroll = rankIdx - vis + 1;
+                    rankIdx++;
+                    if (rankIdx >= rankScroll + vis)
+                        rankScroll = rankIdx - vis + 1;
                 }
                 return true;
             }
@@ -806,17 +806,17 @@ Card GameView::runDiscardWizard(const BoardState& boardState) {
         std::size_t vis = MAX_OPTIONS_IN_PANE;
         if (e == Event::ArrowDown) {
             if (rankIdx + 1 < n) {
-            rankIdx++;
-            if (rankIdx >= rankScroll + vis)
-                rankScroll = rankIdx - vis + 1;
+                rankIdx++;
+                if (rankIdx >= rankScroll + vis)
+                    rankScroll = rankIdx - vis + 1;
             }
             return true;
         }
         if (e == Event::ArrowUp) {
             if (rankIdx > 0) {
-            rankIdx--;
-            if (rankIdx < rankScroll)
-                rankScroll = rankIdx;
+                rankIdx--;
+                if (rankIdx < rankScroll)
+                    rankScroll = rankIdx;
             }
             return true;
         }
@@ -833,18 +833,18 @@ Card GameView::runDiscardWizard(const BoardState& boardState) {
         std::size_t vis = MAX_OPTIONS_IN_PANE;
         if (e == Event::ArrowDown) {
             if (cardIdx + 1 < n) {
-            cardIdx++;
-            if (cardIdx >= cardScroll + vis)
-                cardScroll = cardIdx - vis + 1;
+                cardIdx++;
+                if (cardIdx >= cardScroll + vis)
+                    cardScroll = cardIdx - vis + 1;
             }
             return true;
         }
         if (e == Event::ArrowUp) {
             if (cardIdx > 0) {
-            cardIdx--;
-            if (cardIdx < cardScroll)
-                cardScroll = cardIdx;
-            }
+                cardIdx--;
+                if (cardIdx < cardScroll)
+                    cardScroll = cardIdx;
+                }
             return true;
         }
         if (e == Event::Return) {
