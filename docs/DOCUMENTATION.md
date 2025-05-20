@@ -749,7 +749,7 @@ Each helper transforms DTOs into FTXUI Elements, applying padding, colors, and g
 
 ---
 
-### 3.3.2 Game Engine (Light Pink)
+### 3.3.3 Game Engine (Light Pink)
 
 This group on the **client** side contains a single orchestrator — **ClientController** —which glues together the networking, UI, and local action state tracking to drive each turn from the player’s perspective. It receives server callbacks, updates its currentBoardState, invokes GameView wizards/prompts, and issues actions via ClientNetwork.
 
