@@ -1037,7 +1037,8 @@ FILE_PATTERNS          = *.cpp \
                          *.hpp \
                          *.md  \
                          *.png \
-                         *.jpg
+                         *.jpg \
+                         *.svg
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.
@@ -1102,7 +1103,7 @@ EXAMPLE_RECURSIVE      = NO
 # that contain images that are to be included in the documentation (see the
 # \image command).
 
-IMAGE_PATH             = images
+IMAGE_PATH             = images diagrams
 
 # The INPUT_FILTER tag can be used to specify a program that Doxygen should
 # invoke to filter for each input file. Doxygen will invoke the filter program
