@@ -13,8 +13,8 @@ pip install conan
 
 **Create or Update the Default Profile**:
 ```sh
-conan profile new default --detect
-conan profile update settings.compiler.cppstd=23 default
+conan profile detect
+#change in your conan profile: settings.compiler.cppstd=23
 ```
 
 **Dependencies are installed using the Conan command**:
