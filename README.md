@@ -2,8 +2,6 @@
 
 A cross-platform (Windows, Linux, macOS) console-based implementation of the classic Canasta card game, built with modern C++23. Follows a client-server architecture to allow multiple players to connect over TCP.
 
----
-
 ## Table of Contents
 
 1. [Project Overview](#project-overview)  
@@ -18,14 +16,10 @@ A cross-platform (Windows, Linux, macOS) console-based implementation of the cla
 8. [Getting Started](#getting-started)  
 9. [Playing the Game](#playing-the-game)  
 
----
-
 ## Project Overview
 
 This project is a terminal-based implementation of Canasta.  
 Players play through individual client terminals that connect to a central server. The server enforces the rules, maintains game state, and broadcasts updates; each client renders the current hand, melds, and prompts the player for actions.
-
----
 
 ## Architecture
 
@@ -40,8 +34,6 @@ Players play through individual client terminals that connect to a central serve
 - **Renders the game board, scores, and melds**; prompts the player for draw/take/meld/discard actions.  
 - **Sends actions** to the server and receives updated state.
 
----
-
 ## Libraries & Dependencies
 
 - **Cereal** – header-only serialization (binary archives)  
@@ -50,13 +42,9 @@ Players play through individual client terminals that connect to a central serve
 - **FTXUI** – declarative, component-based terminal UI  
 - **Conan** – C++ package manager for cross-platform dependency consistency  
 
----
-
 ## Dependency Management
 
 All third-party libraries are managed via **Conan**, ensuring consistent versions across Linux, macOS, and Windows. Conan generates CMake toolchains and dependency files automatically.
-
----
 
 ## Game Flow
 
@@ -74,16 +62,12 @@ All third-party libraries are managed via **Conan**, ensuring consistent version
 4. **End of Game**  
    - First team to reach the winning threshold wins; final scoreboard is displayed.
 
----
-
 ## Advantages
 
 - **Cross-Platform**: Windows, Linux, and macOS supported out of the box.  
 - **Scalable Design**: Client-server model allows easy future GUI or additional clients.  
 - **Separation of Concerns**: Core game logic isolated from networking and UI layers.  
 - **Hot-Swap UI**: The client view layer uses FTXUI but can be replaced without touching game logic.  
-
----
 
 ## Directory Structure
 ```shell
@@ -109,13 +93,10 @@ All third-party libraries are managed via **Conan**, ensuring consistent version
 │   └── conanfile.py
 └── README.md                ← This file
 ```
----
 
 ## Getting Started
 
 For detailed build and run instructions, see [docs/INSTALL.md](docs/INSTALL.md).
-
----
 
 ## Playing the Game
 
